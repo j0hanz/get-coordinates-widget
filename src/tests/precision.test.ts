@@ -14,7 +14,6 @@ import {
   PRECISION_LIMITS,
   resolvePrecisionForOption,
   RT90_ZONES,
-  sanitizeConfig,
   sanitizePrecision,
   SWEREF_GEODETIC_OPTIONS,
   SWEREF_ZONES,
@@ -48,7 +47,7 @@ describe("precision handling", () => {
   });
 
   it("sanitizes partial configuration consistently", () => {
-    const sanitized = sanitizeConfig({
+    const sanitized = buildConfig({
       swerefWkid: 999999,
       precision: 42,
       showExportButton: false,

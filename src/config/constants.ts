@@ -655,57 +655,36 @@ const stripPrefixFromLabel = (
   return label.slice(match[0].length).trim();
 };
 
-const buildLabelPrefixCandidates = (
-  option: CoordinateOption,
-  translate: (key: string) => string
-): string[] => {
-  const meta = COORDINATE_SYSTEM_META_LOOKUP.get(option.system);
-  const translated = meta ? translate(meta.labelMessageKey) : null;
-  const defaults = meta?.label ?? option.system.toUpperCase();
-  const candidates = new Set<string>();
-  if (translated) candidates.add(translated);
-  if (defaults) candidates.add(defaults);
-  if (translated) candidates.add(translated.replace(/\s+/g, ""));
-  if (defaults) candidates.add(defaults.replace(/\s+/g, ""));
-  return Array.from(candidates).filter(Boolean);
-};
-
-const stripLabelPrefix = (label: string, candidate: string): string | null => {
-  return stripPrefixFromLabel(label, candidate);
-};
-
-const buildSystemLabel = (
+export const formatCoordinateOptionLabel = (
   option: CoordinateOption,
   translate: (key: string) => string
 ): string => {
   const meta = COORDINATE_SYSTEM_META_LOOKUP.get(option.system);
   const translatedSystem = meta ? translate(meta.labelMessageKey) : null;
-  return translatedSystem && translatedSystem !== meta?.label
-    ? translatedSystem
-    : (meta?.label ?? option.system.toUpperCase());
-};
+  const systemLabel =
+    translatedSystem && translatedSystem !== meta?.label
+      ? translatedSystem
+      : (meta?.label ?? option.system.toUpperCase());
 
-export const formatCoordinateOptionLabel = (
-  option: CoordinateOption,
-  translate: (key: string) => string
-): string => {
-  const systemLabel = buildSystemLabel(option, translate);
   const originalLabel = option.label.trim();
-  const candidates = buildLabelPrefixCandidates(option, translate);
+  if (!originalLabel) return systemLabel;
 
-  let remainder: string | null = null;
+  const candidates: string[] = [
+    translatedSystem || "",
+    meta?.label || "",
+    (translatedSystem || "").replace(/\s+/g, ""),
+    (meta?.label || "").replace(/\s+/g, ""),
+  ].filter(Boolean);
+
+  let suffix = originalLabel;
   for (const candidate of candidates) {
-    const stripped = stripLabelPrefix(originalLabel, candidate);
-    if (stripped !== null) {
-      remainder = stripped;
+    const stripped = stripPrefixFromLabel(originalLabel, candidate);
+    if (stripped) {
+      suffix = stripped;
       break;
     }
   }
 
-  const suffix = remainder ?? originalLabel;
-  if (!suffix) {
-    return systemLabel;
-  }
   if (suffix.toLowerCase().startsWith(systemLabel.toLowerCase())) {
     return suffix;
   }
@@ -854,9 +833,6 @@ export const buildConfig = (partial: unknown): KoordinaterConfig => {
     pinIconId,
   };
 };
-
-export const sanitizeConfig = (partial: unknown): KoordinaterConfig =>
-  buildConfig(partial);
 
 export const sanitizePrecision = (
   value: unknown,

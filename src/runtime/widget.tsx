@@ -13,13 +13,11 @@ import { useTheme } from "jimu-theme";
 import downIcon from "jimu-icons/svg/outlined/directional/down.svg";
 import copyIcon from "jimu-icons/svg/outlined/editor/copy.svg";
 import {
-  buildConfig,
   computeAllowedZones,
   type CoordinateOption,
   EXPORT_FORMATS,
   formatCoordinateOptionLabel,
   type GraphicsLayerCtor,
-  type KoordinaterConfig,
   type KoordinaterModules,
   type KoordinaterWidgetProps,
   type NativeEventWithStop,
@@ -29,6 +27,7 @@ import {
 import { createWidgetStyles } from "../config/style";
 import {
   useArcGisModuleLoader,
+  useConfigState,
   useExportManager,
   useFeedbackController,
   usePinGraphicManager,
@@ -75,9 +74,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
     clear: clearFeedbackMessage,
   } = useFeedbackController(translateRef);
 
-  const [config, setConfig] = React.useState<KoordinaterConfig>(() =>
-    buildConfig(props.config)
-  );
+  const { config } = useConfigState(props.config);
   const configRef = hooks.useLatest(config);
 
   const [jmv, setJmv] = React.useState<JimuMapView | null>(null);
@@ -118,10 +115,6 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   }>(["esri/layers/GraphicsLayer"], (GraphicsLayer) => ({
     GraphicsLayer: GraphicsLayer as GraphicsLayerCtor,
   }));
-
-  hooks.useUpdateEffect(() => {
-    setConfig(buildConfig(props.config));
-  }, [props.config]);
 
   const styles = useStyles();
   const noValueText = translate(NO_VALUE_MESSAGE_KEY);

@@ -228,6 +228,28 @@ export const toNumber = (value: unknown): number | null => {
   return null;
 };
 
+export const parseIntOrNull = (
+  value: unknown,
+  evt?: React.ChangeEvent<HTMLInputElement>
+): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = parseInt(value, 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  if (evt?.target?.value) {
+    const parsed = parseInt(evt.target.value, 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
 export const readConfigValue = (candidate: unknown, key: string): unknown => {
   if (!candidate || typeof candidate !== "object") {
     return undefined;
@@ -343,22 +365,22 @@ export const projectPointToOption = async (
     return normalizeLongitudeIfNeeded(clonePoint(modules, point));
   }
 
-  const wgs84Clone = sourceSr.isWGS84
-    ? normalizeLongitudeIfNeeded(clonePoint(modules, point))
-    : null;
-
-  if (sourceSr.isWGS84 && option.wkid === 4326) {
-    return wgs84Clone;
-  }
-
   if (isWebMercatorWkid(sourceSr.wkid) && option.wkid === 4326) {
     return projectWebMercatorToWgs84(point, webMercatorUtils);
+  }
+
+  if (sourceSr.isWGS84 && option.wkid === 4326) {
+    return normalizeLongitudeIfNeeded(clonePoint(modules, point));
   }
 
   const targetSr = getSpatialReference(option.wkid);
   if (!targetSr) return null;
 
-  return await projectWgs84ToTarget(wgs84Clone ?? point, targetSr, projection);
+  const sourcePoint = sourceSr.isWGS84
+    ? normalizeLongitudeIfNeeded(clonePoint(modules, point))
+    : point;
+
+  return await projectWgs84ToTarget(sourcePoint, targetSr, projection);
 };
 
 export const buildProjectionSnapshot = async (

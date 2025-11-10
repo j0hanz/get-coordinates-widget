@@ -3,6 +3,7 @@ import { loadArcGISJSAPIModules } from "jimu-arcgis";
 import { saveAs } from "file-saver";
 import {
   AXIS_VALUE_SEPARATOR,
+  buildConfig,
   buildExportFilename,
   buildPinSymbolDataUrl,
   ConfigSanitizers,
@@ -17,6 +18,7 @@ import {
   getCoordinateOption,
   getPinIconDefinition,
   isExportFormat,
+  type KoordinaterConfig,
   NO_VALUE_MESSAGE_KEY,
   type PinGraphicManager,
   type PinGraphicManagerParams,
@@ -35,6 +37,18 @@ import {
 } from "./utils";
 
 const { hexColor: sanitizeHexColor } = ConfigSanitizers;
+
+export const useConfigState = (configProp: unknown) => {
+  const [config, setConfig] = React.useState<KoordinaterConfig>(() =>
+    buildConfig(configProp)
+  );
+
+  hooks.useUpdateEffect(() => {
+    setConfig(buildConfig(configProp));
+  }, [configProp]);
+
+  return { config, setConfig };
+};
 
 export const useFeedbackController = (
   translateRef: React.MutableRefObject<(id: string) => string>
@@ -90,6 +104,9 @@ export const usePointerSubscriptions = (params: PointerSubscriptionsParams) => {
   const lastMoveEventRef = React.useRef<__esri.ViewPointerMoveEvent | null>(
     null
   );
+  const lastProcessedPosRef = React.useRef<{ x: number; y: number } | null>(
+    null
+  );
 
   const cancelPendingFrame = hooks.useEventCallback(() => {
     if (rafIdRef.current != null) {
@@ -116,6 +133,15 @@ export const usePointerSubscriptions = (params: PointerSubscriptionsParams) => {
       (evt: __esri.ViewPointerMoveEvent) => {
         if (isPinnedRef.current) return;
 
+        const lastPos = lastProcessedPosRef.current;
+        if (
+          lastPos &&
+          Math.abs(lastPos.x - evt.x) < 2 &&
+          Math.abs(lastPos.y - evt.y) < 2
+        ) {
+          return;
+        }
+
         lastMoveEventRef.current = evt;
         if (rafIdRef.current != null) return;
 
@@ -124,6 +150,7 @@ export const usePointerSubscriptions = (params: PointerSubscriptionsParams) => {
           const latestEvt = lastMoveEventRef.current;
           if (!latestEvt || !viewRef.current) return;
 
+          lastProcessedPosRef.current = { x: latestEvt.x, y: latestEvt.y };
           const pt = viewRef.current.toMap({
             x: latestEvt.x,
             y: latestEvt.y,
@@ -189,29 +216,16 @@ const createPinSymbol = (
   yoffset: definition.mapSymbol.yOffset,
 });
 
-const tryRemoveGraphicFromLayer = (
-  layer: __esri.GraphicsLayer | null,
-  graphic: __esri.Graphic | null
+const safeRemove = <T, U>(
+  container: T | null,
+  item: U | null,
+  removeFn: (container: T, item: U) => void
 ) => {
-  if (graphic && layer) {
-    try {
-      layer.remove(graphic);
-    } catch {
-      /* ignore removal errors */
-    }
-  }
-};
-
-const tryRemoveLayerFromMap = (
-  layer: __esri.GraphicsLayer | null,
-  map: __esri.Map | null
-) => {
-  if (layer && map) {
-    try {
-      map.remove(layer);
-    } catch {
-      /* ignore removal errors */
-    }
+  if (!container || !item) return;
+  try {
+    removeFn(container, item);
+  } catch {
+    /* ignore removal errors */
   }
 };
 
@@ -231,6 +245,7 @@ export const usePinGraphicManager = (
   const symbolUrlRef = React.useRef<string | null>(null);
   const symbolColorRef = React.useRef<string | null>(null);
   const symbolIconIdRef = React.useRef<PinIconId | null>(null);
+  const symbolCacheRef = React.useRef<Map<string, string>>(new Map());
 
   const resolveSymbolResources = hooks.useEventCallback(() => {
     const desiredColor = sanitizeHexColor(
@@ -249,8 +264,19 @@ export const usePinGraphicManager = (
         definition,
       };
     }
+
+    const cacheKey = `${iconId}:${desiredColor}`;
+    const cached = symbolCacheRef.current.get(cacheKey);
+    if (cached) {
+      symbolUrlRef.current = cached;
+      symbolColorRef.current = desiredColor;
+      symbolIconIdRef.current = iconId;
+      return { url: cached, definition };
+    }
+
     const url = buildPinSymbolDataUrl(definition, desiredColor);
     if (!url) return null;
+    symbolCacheRef.current.set(cacheKey, url);
     symbolUrlRef.current = url;
     symbolColorRef.current = desiredColor;
     symbolIconIdRef.current = iconId;
@@ -264,7 +290,7 @@ export const usePinGraphicManager = (
     const previousMap = pinLayerMapRef.current;
 
     if (!viewCurrent) {
-      tryRemoveLayerFromMap(existingLayer, previousMap);
+      safeRemove(previousMap, existingLayer, (m, l) => m.remove(l));
       pinLayerRef.current = null;
       pinLayerMapRef.current = null;
       return null;
@@ -273,7 +299,7 @@ export const usePinGraphicManager = (
     const map = viewCurrent.map;
 
     if (existingLayer && previousMap && previousMap !== map) {
-      tryRemoveLayerFromMap(existingLayer, previousMap);
+      safeRemove(previousMap, existingLayer, (m, l) => m.remove(l));
       pinLayerRef.current = null;
       pinLayerMapRef.current = null;
     }
@@ -311,7 +337,9 @@ export const usePinGraphicManager = (
 
   const clearGraphic = hooks.useEventCallback(() => {
     pinnedPointRef.current = null;
-    tryRemoveGraphicFromLayer(pinLayerRef.current, pinGraphicRef.current);
+    safeRemove(pinLayerRef.current, pinGraphicRef.current, (layer, graphic) => {
+      layer.remove(graphic);
+    });
     pinGraphicRef.current = null;
   });
 
@@ -338,7 +366,7 @@ export const usePinGraphicManager = (
         graphic.symbol = symbol;
       }
 
-      tryRemoveGraphicFromLayer(layer, graphic);
+      safeRemove(layer, graphic, (l, g) => l.remove(g));
       layer.add(graphic);
     } catch {
       /* ignore rendering errors silently */
@@ -377,7 +405,9 @@ export const usePinGraphicManager = (
 
   hooks.useUnmount(() => {
     clearGraphic();
-    tryRemoveLayerFromMap(pinLayerRef.current, pinLayerMapRef.current);
+    safeRemove(pinLayerMapRef.current, pinLayerRef.current, (map, layer) =>
+      map.remove(layer)
+    );
     pinLayerRef.current = null;
     pinLayerMapRef.current = null;
   });

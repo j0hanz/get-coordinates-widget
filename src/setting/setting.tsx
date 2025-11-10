@@ -41,6 +41,7 @@ import type {
 import {
   evaluateKoordinaterReadiness,
   materializeValueArray,
+  parseIntOrNull,
   resolveCheckedValue,
 } from "../shared/utils";
 import defaultMessages from "./translations/default";
@@ -90,28 +91,6 @@ const {
   hexColor: sanitizeHexColor,
   pinIconId: sanitizePinIconId,
 } = ConfigSanitizers;
-
-const extractPrecisionCandidate = (
-  value?: number | string,
-  evt?: React.ChangeEvent<HTMLInputElement>
-): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string") {
-    const parsed = parseInt(value, 10);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  if (evt?.target) {
-    const fromEvent = parseInt(evt.target.value, 10);
-    if (Number.isFinite(fromEvent)) {
-      return fromEvent;
-    }
-  }
-  return null;
-};
 
 const logSettingsEvent = (
   event: string,
@@ -260,22 +239,27 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
 
   // Sync staged state when external config changes (e.g., undo/redo or JSON edit)
   hooks.useUpdateEffect(() => {
-    const nextSanitized = buildConfig(cfg);
-    const include = nextSanitized.includeExtendedSystems;
-    const enabled = restrictEnabledWkids(nextSanitized.enabledWkids, include, {
-      allowEmpty: true,
-    });
+    const include = sanitizedConfig.includeExtendedSystems;
+    const enabled = restrictEnabledWkids(
+      sanitizedConfig.enabledWkids,
+      include,
+      {
+        allowEmpty: true,
+      }
+    );
     enabledSnapshotRef.current = enabled.map(String).sort().join("|");
     setLocalIncludeExtended(include);
     setLocalEnabledWkids(enabled);
-    setLocalWkid(ensureValidWkid(nextSanitized.swerefWkid, enabled));
-    setLocalPrecision(nextSanitized.precision);
-    setLocalShowExportButton(!!nextSanitized.showExportButton);
-    setLocalCopyOnClick(!!nextSanitized.copyOnClick);
-    setLocalEnablePin(!!nextSanitized.enablePin);
-    setLocalPinFillColor(nextSanitized.pinFillColor || DEFAULT_PIN_FILL_COLOR);
-    setLocalPinIconId(nextSanitized.pinIconId || DEFAULT_PIN_ICON_ID);
-  }, [cfg]);
+    setLocalWkid(ensureValidWkid(sanitizedConfig.swerefWkid, enabled));
+    setLocalPrecision(sanitizedConfig.precision);
+    setLocalShowExportButton(!!sanitizedConfig.showExportButton);
+    setLocalCopyOnClick(!!sanitizedConfig.copyOnClick);
+    setLocalEnablePin(!!sanitizedConfig.enablePin);
+    setLocalPinFillColor(
+      sanitizedConfig.pinFillColor || DEFAULT_PIN_FILL_COLOR
+    );
+    setLocalPinIconId(sanitizedConfig.pinIconId || DEFAULT_PIN_ICON_ID);
+  }, [sanitizedConfig]);
 
   const commitPartial = hooks.useEventCallback(
     (updates: Partial<KoordinaterConfig>) => {
@@ -397,7 +381,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
 
   const onPrecisionChange = hooks.useEventCallback(
     (value?: number | string, evt?: React.ChangeEvent<HTMLInputElement>) => {
-      const numeric = extractPrecisionCandidate(value, evt);
+      const numeric = parseIntOrNull(value, evt);
       if (numeric == null) {
         return;
       }
@@ -522,7 +506,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
                 }
                 onChange={onPrecisionChange}
                 onAcceptValue={(finalValue) => {
-                  const numeric = extractPrecisionCandidate(finalValue);
+                  const numeric = parseIntOrNull(finalValue);
                   if (numeric != null) {
                     commitPrecisionValue(numeric);
                     return;
