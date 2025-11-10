@@ -193,7 +193,6 @@ export const createStyleVariantSelectorStyles = () => {
       width: "100%",
     }),
     button: css({
-      width: 108,
       height: 80,
       padding: 0,
       margin: 0,

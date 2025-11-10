@@ -43,6 +43,7 @@ const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
           <Button
             type="tertiary"
             role="radio"
+            block
             css={[styles.button, isDefaultActive && styles.buttonActive]}
             onClick={() => handleStyleVariantChange(StyleVariant.Default)}
             title={translate("styleVariantDefault")}
@@ -58,6 +59,7 @@ const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
           <Button
             type="tertiary"
             role="radio"
+            block
             css={[styles.button, isLinearActive && styles.buttonActive]}
             onClick={() => handleStyleVariantChange(StyleVariant.Linear)}
             title={translate("styleVariantLinear")}
