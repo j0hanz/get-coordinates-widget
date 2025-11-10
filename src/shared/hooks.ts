@@ -6,24 +6,24 @@ import {
   buildExportFilename,
   buildPinSymbolDataUrl,
   ConfigSanitizers,
-  type CoordinateOption,
   createExportPayload,
   DEFAULT_PIN_FILL_COLOR,
   DEFAULT_PIN_ICON_ID,
   type ExportFormat,
   type ExportManager,
+  type ExportManagerParams,
   type ExportProjectionSnapshot,
   formatCoordinateOptionLabel,
   getCoordinateOption,
   getPinIconDefinition,
-  type GraphicsLayerCtor,
   isExportFormat,
-  type KoordinaterConfig,
-  type KoordinaterModules,
   NO_VALUE_MESSAGE_KEY,
   type PinGraphicManager,
+  type PinGraphicManagerParams,
   type PinIconId,
+  type PointerSubscriptionsParams,
   type ProjectionManager,
+  type ProjectionManagerParams,
   resolveEffectiveWkid,
   resolvePrecisionForOption,
   serializeExportPayload,
@@ -76,16 +76,6 @@ export const useFeedbackController = (
     clear,
   };
 };
-
-export interface PointerSubscriptionsParams {
-  view: __esri.MapView | undefined;
-  isPinnedRef: React.MutableRefObject<boolean>;
-  updateFromPoint: (
-    pt: __esri.Point | null,
-    options?: { syncPin?: boolean }
-  ) => Promise<string | null>;
-  handleMapClick: (event: __esri.ViewClickEvent) => Promise<void> | void;
-}
 
 export const usePointerSubscriptions = (params: PointerSubscriptionsParams) => {
   const { view, isPinnedRef, updateFromPoint, handleMapClick } = params;
@@ -184,13 +174,42 @@ export const useArcGisModuleLoader = <T>(
   return value;
 };
 
-interface PinGraphicManagerParams {
-  view: __esri.MapView | undefined;
-  modules: KoordinaterModules | null;
-  extraModules: { GraphicsLayer?: GraphicsLayerCtor } | null;
-  pinFillColor: string;
-  pinIconId: PinIconId;
-}
+const createPinSymbol = (
+  symbolUrl: string,
+  definition: ReturnType<typeof getPinIconDefinition>
+) => ({
+  type: "picture-marker" as const,
+  url: symbolUrl,
+  width: definition.mapSymbol.width,
+  height: definition.mapSymbol.height,
+  yoffset: definition.mapSymbol.yOffset,
+});
+
+const tryRemoveGraphicFromLayer = (
+  layer: __esri.GraphicsLayer | null,
+  graphic: __esri.Graphic | null
+) => {
+  if (graphic && layer) {
+    try {
+      layer.remove(graphic);
+    } catch {
+      /* ignore removal errors */
+    }
+  }
+};
+
+const tryRemoveLayerFromMap = (
+  layer: __esri.GraphicsLayer | null,
+  map: __esri.Map | null
+) => {
+  if (layer && map) {
+    try {
+      map.remove(layer);
+    } catch {
+      /* ignore removal errors */
+    }
+  }
+};
 
 export const usePinGraphicManager = (
   params: PinGraphicManagerParams
@@ -241,13 +260,7 @@ export const usePinGraphicManager = (
     const previousMap = pinLayerMapRef.current;
 
     if (!viewCurrent) {
-      if (existingLayer && previousMap) {
-        try {
-          previousMap.remove(existingLayer);
-        } catch {
-          /* ignore removal errors */
-        }
-      }
+      tryRemoveLayerFromMap(existingLayer, previousMap);
       pinLayerRef.current = null;
       pinLayerMapRef.current = null;
       return null;
@@ -256,11 +269,7 @@ export const usePinGraphicManager = (
     const map = viewCurrent.map;
 
     if (existingLayer && previousMap && previousMap !== map) {
-      try {
-        previousMap.remove(existingLayer);
-      } catch {
-        /* ignore removal errors */
-      }
+      tryRemoveLayerFromMap(existingLayer, previousMap);
       pinLayerRef.current = null;
       pinLayerMapRef.current = null;
     }
@@ -298,15 +307,7 @@ export const usePinGraphicManager = (
 
   const clearGraphic = hooks.useEventCallback(() => {
     pinnedPointRef.current = null;
-    const graphic = pinGraphicRef.current;
-    const layer = pinLayerRef.current;
-    if (graphic && layer) {
-      try {
-        layer.remove(graphic);
-      } catch {
-        /* ignore removal errors */
-      }
-    }
+    tryRemoveGraphicFromLayer(pinLayerRef.current, pinGraphicRef.current);
     pinGraphicRef.current = null;
   });
 
@@ -321,13 +322,7 @@ export const usePinGraphicManager = (
     if (!symbolResources) return;
 
     const { url: symbolUrl, definition } = symbolResources;
-    const symbol = {
-      type: "picture-marker" as const,
-      url: symbolUrl,
-      width: definition.mapSymbol.width,
-      height: definition.mapSymbol.height,
-      yoffset: definition.mapSymbol.yOffset,
-    };
+    const symbol = createPinSymbol(symbolUrl, definition);
 
     try {
       let graphic = pinGraphicRef.current;
@@ -339,11 +334,7 @@ export const usePinGraphicManager = (
         graphic.symbol = symbol;
       }
 
-      try {
-        layer.remove(graphic);
-      } catch {
-        /* ignore */
-      }
+      tryRemoveGraphicFromLayer(layer, graphic);
       layer.add(graphic);
     } catch {
       /* ignore rendering errors silently */
@@ -382,15 +373,7 @@ export const usePinGraphicManager = (
 
   hooks.useUnmount(() => {
     clearGraphic();
-    const layer = pinLayerRef.current;
-    const map = pinLayerMapRef.current;
-    if (layer && map) {
-      try {
-        map.remove(layer);
-      } catch {
-        /* ignore removal errors */
-      }
-    }
+    tryRemoveLayerFromMap(pinLayerRef.current, pinLayerMapRef.current);
     pinLayerRef.current = null;
     pinLayerMapRef.current = null;
   });
@@ -403,14 +386,33 @@ export const usePinGraphicManager = (
   };
 };
 
-interface ProjectionManagerParams {
-  modules: KoordinaterModules | null;
-  configRef: React.MutableRefObject<KoordinaterConfig>;
-  selectedWkidRef: React.MutableRefObject<number>;
-  viewRef: React.MutableRefObject<__esri.MapView | undefined>;
-  getSpatialReference: (wkid: number) => __esri.SpatialReference | null;
-  translate: (id: string) => string;
-}
+const formatCoordinateAxis = (
+  value: number,
+  precision: number,
+  emptyText: string
+): string => {
+  return formatNumber(value, precision, emptyText);
+};
+
+const buildFormattedOutput = (
+  snapshot: ExportProjectionSnapshot,
+  precision: number,
+  translate: (id: string) => string,
+  emptyValueText: string
+): string => {
+  const firstFormatted = formatCoordinateAxis(
+    snapshot.firstValue,
+    precision,
+    emptyValueText
+  );
+  const secondFormatted = formatCoordinateAxis(
+    snapshot.secondValue,
+    precision,
+    emptyValueText
+  );
+
+  return `${translate(snapshot.firstAxis)}:${AXIS_VALUE_SEPARATOR}${firstFormatted}, ${translate(snapshot.secondAxis)}:${AXIS_VALUE_SEPARATOR}${secondFormatted}`;
+};
 
 export const useProjectionManager = (
   params: ProjectionManagerParams
@@ -477,20 +479,14 @@ export const useProjectionManager = (
           return emptyValueText;
         }
         const precision = resolvePrecisionForOption(option, cfg.precision);
-        const firstFormatted = formatNumber(
-          snapshot.firstValue,
-          precision,
-          emptyValueText
-        );
-        const secondFormatted = formatNumber(
-          snapshot.secondValue,
-          precision,
-          emptyValueText
-        );
-
         lastProjectionRef.current = snapshot;
 
-        return `${translateFn(snapshot.firstAxis)}:${AXIS_VALUE_SEPARATOR}${firstFormatted}, ${translateFn(snapshot.secondAxis)}:${AXIS_VALUE_SEPARATOR}${secondFormatted}`;
+        return buildFormattedOutput(
+          snapshot,
+          precision,
+          translateFn,
+          emptyValueText
+        );
       } catch {
         lastProjectionRef.current = null;
         return emptyValueText;
@@ -515,13 +511,6 @@ export const useProjectionManager = (
     clearSnapshot,
   };
 };
-
-interface ExportManagerParams {
-  projection: ProjectionManager;
-  configRef: React.MutableRefObject<KoordinaterConfig>;
-  allowedOptionsRef: React.MutableRefObject<CoordinateOption[]>;
-  translate: (id: string) => string;
-}
 
 export const useExportManager = (
   params: ExportManagerParams

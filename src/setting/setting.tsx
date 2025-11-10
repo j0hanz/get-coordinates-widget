@@ -126,10 +126,6 @@ const logSettingsEvent = (
   }
   if (typeof console.info === "function") {
     console.info("[Koordinater][Settings]", event, details);
-    return;
-  }
-  if (typeof console.log === "function") {
-    console.log("[Koordinater][Settings]", event, details);
   }
 };
 

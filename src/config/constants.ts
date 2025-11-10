@@ -1,3 +1,4 @@
+import { clamp, readConfigValue, toArray, toNumber } from "../shared/utils";
 import type {
   AxisMessageKey,
   CoordinateOption,
@@ -462,74 +463,6 @@ export const NO_VALUE_MESSAGE_KEY = "noValue";
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const toNumber = (value: unknown): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  return null;
-};
-
-const toArray = (value: unknown): unknown[] => {
-  if (Array.isArray(value)) {
-    return value;
-  }
-  if (value && typeof value === "object") {
-    const candidate = value as {
-      toArray?: () => unknown[];
-      toJS?: () => unknown;
-    };
-    if (typeof candidate.toArray === "function") {
-      try {
-        return candidate.toArray();
-      } catch {
-        return [];
-      }
-    }
-    if (typeof candidate.toJS === "function") {
-      try {
-        const jsValue = candidate.toJS();
-        return Array.isArray(jsValue) ? jsValue : [];
-      } catch {
-        return [];
-      }
-    }
-  }
-  return [];
-};
-
-const readConfigValue = (
-  candidate: unknown,
-  key: keyof KoordinaterConfig
-): unknown => {
-  if (!candidate || typeof candidate !== "object") {
-    return undefined;
-  }
-  if (Object.prototype.hasOwnProperty.call(candidate, key)) {
-    return (candidate as KoordinaterConfig)[key];
-  }
-  const maybeGetter = candidate as {
-    get?: (prop: keyof KoordinaterConfig) => unknown;
-  };
-  if (typeof maybeGetter.get === "function") {
-    try {
-      return maybeGetter.get(key);
-    } catch {
-      return undefined;
-    }
-  }
-  return undefined;
-};
-
-const clamp = (value: number, min: number, max: number): number => {
-  return Math.min(max, Math.max(min, value));
-};
-
 export const ConfigCoercers = {
   string: (value: unknown, fallback: string): string => {
     if (typeof value === "string") {
@@ -711,7 +644,26 @@ export const getDefaultWkidForSystem = (
   return DEFAULT_WKID_BY_SYSTEM[systemId] ?? DEFAULT_SWEREF_WKID;
 };
 
-const buildPrefixCandidates = (
+const stripPrefixFromLabel = (
+  label: string,
+  candidate: string
+): string | null => {
+  const collapsedCandidate = candidate.replace(/\s+/g, " ").trim();
+  if (!collapsedCandidate) return null;
+  const escaped = collapsedCandidate
+    .split(/\s+/)
+    .map((segment) => escapeRegExp(segment))
+    .join("\\s+");
+  // Safe: Input is escaped via escapeRegExp before RegExp construction
+  const pattern = new RegExp(`^${escaped}(?:\\s*[-–—]\\s*|\\s+)`, "i");
+  const match = label.match(pattern);
+  if (!match) {
+    return null;
+  }
+  return label.slice(match[0].length).trim();
+};
+
+const buildLabelPrefixCandidates = (
   option: CoordinateOption,
   translate: (key: string) => string
 ): string[] => {
@@ -726,40 +678,32 @@ const buildPrefixCandidates = (
   return Array.from(candidates).filter(Boolean);
 };
 
-const stripPrefixFromLabel = (
-  label: string,
-  candidate: string
-): string | null => {
-  const collapsedCandidate = candidate.replace(/\s+/g, " ").trim();
-  if (!collapsedCandidate) return null;
-  const escaped = collapsedCandidate
-    .split(/\s+/)
-    .map((segment) => escapeRegExp(segment))
-    .join("\\s+");
-  const pattern = new RegExp(`^${escaped}(?:\\s*[-–—]\\s*|\\s+)`, "i");
-  const match = label.match(pattern);
-  if (!match) {
-    return null;
-  }
-  return label.slice(match[0].length).trim();
+const stripLabelPrefix = (label: string, candidate: string): string | null => {
+  return stripPrefixFromLabel(label, candidate);
+};
+
+const buildSystemLabel = (
+  option: CoordinateOption,
+  translate: (key: string) => string
+): string => {
+  const meta = COORDINATE_SYSTEM_META_LOOKUP.get(option.system);
+  const translatedSystem = meta ? translate(meta.labelMessageKey) : null;
+  return translatedSystem && translatedSystem !== meta?.label
+    ? translatedSystem
+    : (meta?.label ?? option.system.toUpperCase());
 };
 
 export const formatCoordinateOptionLabel = (
   option: CoordinateOption,
   translate: (key: string) => string
 ): string => {
-  const meta = COORDINATE_SYSTEM_META_LOOKUP.get(option.system);
-  const translatedSystem = meta ? translate(meta.labelMessageKey) : null;
-  const systemLabel =
-    translatedSystem && translatedSystem !== meta?.label
-      ? translatedSystem
-      : (meta?.label ?? option.system.toUpperCase());
-
+  const systemLabel = buildSystemLabel(option, translate);
   const originalLabel = option.label.trim();
-  const candidates = buildPrefixCandidates(option, translate);
+  const candidates = buildLabelPrefixCandidates(option, translate);
+
   let remainder: string | null = null;
   for (const candidate of candidates) {
-    const stripped = stripPrefixFromLabel(originalLabel, candidate);
+    const stripped = stripLabelPrefix(originalLabel, candidate);
     if (stripped !== null) {
       remainder = stripped;
       break;
@@ -841,6 +785,11 @@ const coerceEnabledWkids = (
   });
 };
 
+const readKoordinaterConfigValue = (
+  candidate: unknown,
+  key: keyof KoordinaterConfig
+): unknown => readConfigValue(candidate, key);
+
 export const buildConfig = (partial: unknown): KoordinaterConfig => {
   const base: KoordinaterConfig = {
     swerefWkid: defaultConfig.swerefWkid,
@@ -855,50 +804,50 @@ export const buildConfig = (partial: unknown): KoordinaterConfig => {
   };
 
   const includeExtended = ConfigCoercers.boolean(
-    readConfigValue(partial, "includeExtendedSystems"),
+    readKoordinaterConfigValue(partial, "includeExtendedSystems"),
     base.includeExtendedSystems
   );
 
   const enabledWkids = coerceEnabledWkids(
-    readConfigValue(partial, "enabledWkids"),
+    readKoordinaterConfigValue(partial, "enabledWkids"),
     includeExtended
   );
 
   const resolvedWkid = ensureValidWkid(
     ConfigSanitizers.wkid(
-      readConfigValue(partial, "swerefWkid"),
+      readKoordinaterConfigValue(partial, "swerefWkid"),
       DEFAULT_SWEREF_WKID
     ),
     enabledWkids
   );
 
   const precision = ConfigSanitizers.precision(
-    readConfigValue(partial, "precision"),
+    readKoordinaterConfigValue(partial, "precision"),
     base.precision
   );
 
   const showExportButton = ConfigCoercers.boolean(
-    readConfigValue(partial, "showExportButton"),
+    readKoordinaterConfigValue(partial, "showExportButton"),
     base.showExportButton
   );
 
   const copyOnClick = ConfigCoercers.boolean(
-    readConfigValue(partial, "copyOnClick"),
+    readKoordinaterConfigValue(partial, "copyOnClick"),
     base.copyOnClick
   );
 
   const enablePin = ConfigCoercers.boolean(
-    readConfigValue(partial, "enablePin"),
+    readKoordinaterConfigValue(partial, "enablePin"),
     base.enablePin
   );
 
   const pinFillColor = ConfigSanitizers.hexColor(
-    readConfigValue(partial, "pinFillColor"),
+    readKoordinaterConfigValue(partial, "pinFillColor"),
     base.pinFillColor
   );
 
   const pinIconId = ConfigSanitizers.pinIconId(
-    readConfigValue(partial, "pinIconId")
+    readKoordinaterConfigValue(partial, "pinIconId")
   );
 
   return {

@@ -82,16 +82,27 @@ const escapeXml = (value: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 
-const formatExportAsJson = (payload: ExportPayload) =>
-  JSON.stringify(payload, null, 2);
+const escapeYamlString = (value: string) => value.replace(/"/g, '\\"');
 
-const formatExportAsXml = (payload: ExportPayload) => {
-  const axes = payload.axes
+const formatAxesAsXml = (axes: ExportAxisPayload[]): string =>
+  axes
     .map(
       (axis) =>
         `  <axis>\n    <label>${escapeXml(axis.label)}</label>\n    <value>${escapeXml(String(axis.value))}</value>\n  </axis>`
     )
     .join("\n");
+
+const formatAxesAsYaml = (axes: ExportAxisPayload[]): string[] =>
+  axes.map(
+    (axis) =>
+      `  - label: "${escapeYamlString(axis.label)}"\n    value: ${axis.value}`
+  );
+
+const formatExportAsJson = (payload: ExportPayload) =>
+  JSON.stringify(payload, null, 2);
+
+const formatExportAsXml = (payload: ExportPayload) => {
+  const axes = formatAxesAsXml(payload.axes);
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n<coordinates>` +
     `\n  <wkid>${escapeXml(String(payload.wkid))}</wkid>` +
@@ -109,12 +120,9 @@ const formatExportAsYaml = (payload: ExportPayload) =>
   [
     `wkid: ${payload.wkid}`,
     `system: ${payload.system}`,
-    `zoneLabel: "${payload.zoneLabel.replace(/"/g, '\\"')}"`,
+    `zoneLabel: "${escapeYamlString(payload.zoneLabel)}"`,
     "axes:",
-    ...payload.axes.map(
-      (axis) =>
-        `  - label: "${axis.label.replace(/"/g, '\\"')}"\n    value: ${axis.value}`
-    ),
+    ...formatAxesAsYaml(payload.axes),
     `precision: ${payload.precision}`,
     `timestamp: "${payload.timestamp}"`,
     `pointJSON: ${JSON.stringify(payload.pointJSON)}`,

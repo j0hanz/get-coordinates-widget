@@ -187,6 +187,71 @@ export const getThemePalette = (
   return typeof palette === "object" && palette !== null ? palette : undefined;
 };
 
+export const toArray = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (value && typeof value === "object") {
+    const candidate = value as {
+      toArray?: () => unknown[];
+      toJS?: () => unknown;
+    };
+    if (typeof candidate.toArray === "function") {
+      try {
+        return candidate.toArray();
+      } catch {
+        return [];
+      }
+    }
+    if (typeof candidate.toJS === "function") {
+      try {
+        const jsValue = candidate.toJS();
+        return Array.isArray(jsValue) ? jsValue : [];
+      } catch {
+        return [];
+      }
+    }
+  }
+  return [];
+};
+
+export const toNumber = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
+export const readConfigValue = (candidate: unknown, key: string): unknown => {
+  if (!candidate || typeof candidate !== "object") {
+    return undefined;
+  }
+  if (Object.prototype.hasOwnProperty.call(candidate, key)) {
+    return (candidate as { [key: string]: unknown })[key];
+  }
+  const maybeGetter = candidate as {
+    get?: (prop: string) => unknown;
+  };
+  if (typeof maybeGetter.get === "function") {
+    try {
+      return maybeGetter.get(key);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+};
+
+export const clamp = (value: number, min: number, max: number): number => {
+  return Math.min(max, Math.max(min, value));
+};
+
 export const formatNumber = (
   value: number,
   precision: number,
@@ -207,6 +272,33 @@ export const formatNumber = (
 const ensureProjectionLoaded = async (projection: __esri.projection) => {
   if (!projection || projection.isLoaded()) return;
   await projection.load();
+};
+
+const projectWgs84ToTarget = async (
+  point: __esri.Point,
+  targetSr: __esri.SpatialReference,
+  projection: __esri.projection
+): Promise<__esri.Point | null> => {
+  try {
+    await ensureProjectionLoaded(projection);
+    const projected = projection.project(
+      point,
+      targetSr
+    ) as __esri.Point | null;
+    return normalizeLongitudeIfNeeded(projected);
+  } catch {
+    return null;
+  }
+};
+
+const projectWebMercatorToWgs84 = (
+  point: __esri.Point,
+  webMercatorUtils: __esri.webMercatorUtils
+): __esri.Point | null => {
+  const geographic = webMercatorUtils.webMercatorToGeographic(
+    point
+  ) as __esri.Point | null;
+  return normalizeLongitudeIfNeeded(geographic);
 };
 
 export const projectPointToOption = async (
@@ -233,25 +325,13 @@ export const projectPointToOption = async (
   }
 
   if (isWebMercatorWkid(sourceSr.wkid) && option.wkid === 4326) {
-    const geographic = webMercatorUtils.webMercatorToGeographic(
-      point
-    ) as __esri.Point | null;
-    return normalizeLongitudeIfNeeded(geographic);
+    return projectWebMercatorToWgs84(point, webMercatorUtils);
   }
 
   const targetSr = getSpatialReference(option.wkid);
   if (!targetSr) return null;
 
-  try {
-    await ensureProjectionLoaded(projection);
-    const projected = projection.project(
-      wgs84Clone ?? point,
-      targetSr
-    ) as __esri.Point | null;
-    return normalizeLongitudeIfNeeded(projected);
-  } catch {
-    return null;
-  }
+  return await projectWgs84ToTarget(wgs84Clone ?? point, targetSr, projection);
 };
 
 export const buildProjectionSnapshot = async (

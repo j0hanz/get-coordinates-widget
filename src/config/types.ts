@@ -182,6 +182,40 @@ export type GraphicsLayerCtor = new (
   ...args: unknown[]
 ) => __esri.GraphicsLayer;
 
+export interface PointerSubscriptionsParams {
+  view: __esri.MapView | undefined;
+  isPinnedRef: React.MutableRefObject<boolean>;
+  updateFromPoint: (
+    pt: __esri.Point | null,
+    options?: { syncPin?: boolean }
+  ) => Promise<string | null>;
+  handleMapClick: (event: __esri.ViewClickEvent) => Promise<void> | void;
+}
+
+export interface PinGraphicManagerParams {
+  view: __esri.MapView | undefined;
+  modules: KoordinaterModules | null;
+  extraModules: { GraphicsLayer?: GraphicsLayerCtor } | null;
+  pinFillColor: string;
+  pinIconId: PinIconId;
+}
+
+export interface ProjectionManagerParams {
+  modules: KoordinaterModules | null;
+  configRef: React.MutableRefObject<KoordinaterConfig>;
+  selectedWkidRef: React.MutableRefObject<number>;
+  viewRef: React.MutableRefObject<__esri.MapView | undefined>;
+  getSpatialReference: (wkid: number) => __esri.SpatialReference | null;
+  translate: (id: string) => string;
+}
+
+export interface ExportManagerParams {
+  projection: ProjectionManager;
+  configRef: React.MutableRefObject<KoordinaterConfig>;
+  allowedOptionsRef: React.MutableRefObject<CoordinateOption[]>;
+  translate: (id: string) => string;
+}
+
 export interface ThemePalette {
   [tone: string]: string;
 }

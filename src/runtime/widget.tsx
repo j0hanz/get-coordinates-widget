@@ -47,8 +47,6 @@ import exportSvg from "../assets/export.svg";
 import pinOffSvg from "../assets/pin-off.svg";
 import pinSvg from "../assets/pin.svg";
 
-type Props = KoordinaterWidgetProps;
-
 const defaultNoValueText = defaultMessages[NO_VALUE_MESSAGE_KEY];
 if (!defaultNoValueText) {
   throw new Error(`Missing default translation for '${NO_VALUE_MESSAGE_KEY}'`);
@@ -67,7 +65,7 @@ function useStyles() {
   return styles;
 }
 
-const KoordinaterWidget: React.FC<Props> = (props) => {
+const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   const translate = hooks.useTranslation(defaultMessages);
   const translateRef = hooks.useLatest(translate);
   const {

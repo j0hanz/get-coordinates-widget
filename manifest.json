@@ -7,5 +7,8 @@
   "author": "j0hanz",
   "dependency": "jimu-arcgis",
   "settingDependency": ["jimu-arcgis"],
-  "translatedLocales": ["sv-SE"]
+    "translatedLocales": [
+    "en",
+    "sv"
+  ]
 }
