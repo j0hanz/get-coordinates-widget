@@ -1,0 +1,14 @@
+{
+  "swerefWkid": 3006,
+  "precision": 0,
+  "showExportButton": false,
+  "copyOnClick": false,
+  "enablePin": true,
+  "includeExtendedSystems": false,
+  "enabledWkids": [
+    3006, 3007, 3008, 3009, 3010, 3011, 3012, 3013, 3014, 3015, 3016, 3017,
+    3018, 3019, 4669
+  ],
+  "pinFillColor": "#000000",
+  "pinIconId": "classicPin"
+}

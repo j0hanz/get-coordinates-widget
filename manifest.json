@@ -1,0 +1,11 @@
+{
+  "name": "get-coordinates",
+  "label": "get-coordinates",
+  "type": "widget",
+  "version": "1.18.0",
+  "exbVersion": "1.18.0",
+  "author": "j0hanz",
+  "dependency": "jimu-arcgis",
+  "settingDependency": ["jimu-arcgis"],
+  "translatedLocales": ["sv-SE"]
+}
