@@ -52,7 +52,12 @@ const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
             aria-label={translate("styleVariantDefault")}
             aria-checked={isDefaultActive}
           >
-            <SVG src={StyleCoordinateIcon} css={styles.styleImg} />
+            <SVG 
+              src={StyleCoordinateIcon} 
+              css={styles.styleImg}
+              aria-hidden="true"
+              focusable="false"
+            />
           </Button>
           <Button
             type="tertiary"
@@ -64,7 +69,12 @@ const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
             aria-label={translate("styleVariantLinear")}
             aria-checked={isLinearActive}
           >
-            <SVG src={StyleCoordinateLinerIcon} css={styles.styleImg} />
+            <SVG 
+              src={StyleCoordinateLinerIcon} 
+              css={styles.styleImg}
+              aria-hidden="true"
+              focusable="false"
+            />
           </Button>
         </div>
       </SettingRow>

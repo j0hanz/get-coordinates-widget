@@ -197,7 +197,8 @@ export const createStyleVariantSelectorStyles = () => {
     }),
     button: css({
       flex: "1 1 auto",
-      height: 40,
+      minWidth: 104,
+      height: 80,
       padding: 0,
       margin: 0,
       background: "#181818",
@@ -207,9 +208,12 @@ export const createStyleVariantSelectorStyles = () => {
       border: "2px solid var(--sys-color-primary-light)",
     }),
     styleImg: css({
-      height: 36,
-      margin: 0,
+      height: "100%",
       width: "100%",
+      "& svg": {
+        height: "100%",
+        width: "100%",
+      },
     }),
   };
 };
