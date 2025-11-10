@@ -137,16 +137,19 @@ export const clonePoint = (
 };
 
 export const normalizeLongitudeIfNeeded = (
-  pt: __esri.Point | null
+  point: __esri.Point | null
 ): __esri.Point | null => {
-  if (pt?.spatialReference?.isWGS84 && typeof pt.normalize === "function") {
+  if (
+    point?.spatialReference?.isWGS84 &&
+    typeof point.normalize === "function"
+  ) {
     try {
-      pt.normalize();
+      point.normalize();
     } catch {
       /* ignore normalization errors */
     }
   }
-  return pt;
+  return point;
 };
 
 export const createSpatialReferenceFactory = (
@@ -230,10 +233,10 @@ export const toNumber = (value: unknown): number | null => {
 
 export const parseIntOrNull = (
   value: unknown,
-  evt?: React.ChangeEvent<HTMLInputElement>
+  event?: React.ChangeEvent<HTMLInputElement>
 ): number | null => {
   if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
+    return Math.floor(value);
   }
   if (typeof value === "string") {
     const parsed = parseInt(value, 10);
@@ -241,8 +244,8 @@ export const parseIntOrNull = (
       return parsed;
     }
   }
-  if (evt?.target?.value) {
-    const parsed = parseInt(evt.target.value, 10);
+  if (event?.target?.value) {
+    const parsed = parseInt(event.target.value, 10);
     if (Number.isFinite(parsed)) {
       return parsed;
     }

@@ -20,6 +20,7 @@ import type { AllWidgetSettingProps } from "jimu-for-builder";
 import { useTheme } from "jimu-theme";
 import {
   buildConfig,
+  buildPinSymbolDataUrl,
   ConfigSanitizers,
   ConfigValidators,
   DEFAULT_PIN_FILL_COLOR,
@@ -108,6 +109,24 @@ const logSettingsEvent = (
   }
 };
 
+const updateEnabledWkidsSnapshot = (values: Array<string | number>): string => {
+  return values.map(String).sort().join("|");
+};
+
+const validateAndUpdateWkid = (
+  currentWkid: number,
+  enabledWkids: number[],
+  setLocalWkid: (wkid: number) => void
+): Partial<KoordinaterConfig> => {
+  const nextWkid = ensureValidWkid(currentWkid, enabledWkids);
+  const updates: Partial<KoordinaterConfig> = { enabledWkids };
+  if (nextWkid !== currentWkid) {
+    setLocalWkid(nextWkid);
+    return { ...updates, swerefWkid: nextWkid };
+  }
+  return updates;
+};
+
 const ColorPicker: React.FC<{
   value?: string;
   defaultValue?: string;
@@ -132,29 +151,9 @@ const PinIconPreview: React.FC<{
   color: string;
 }> = ({ definition, color }) => {
   const resolvedColor = sanitizeHexColor(color, DEFAULT_PIN_FILL_COLOR);
-  const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${definition.viewBox}">${definition.svgBody.replace(/{{color}}/g, resolvedColor)}</svg>`;
-  let dataSrc: string | null = null;
-  try {
-    const encoder =
-      typeof window !== "undefined" && typeof window.btoa === "function"
-        ? window.btoa
-        : typeof btoa === "function"
-          ? btoa
-          : null;
-    if (encoder) {
-      const utf8 = encodeURIComponent(svgMarkup).replace(
-        /%([0-9A-F]{2})/g,
-        (_match, hex) => String.fromCharCode(parseInt(hex, 16))
-      );
-      const base64 = encoder(utf8);
-      dataSrc = `data:image/svg+xml;base64,${base64}`;
-    }
-  } catch {
-    dataSrc = null;
-  }
-  if (!dataSrc) {
-    dataSrc = `data:image/svg+xml;utf8,${encodeURIComponent(svgMarkup)}`;
-  }
+  const dataSrc =
+    buildPinSymbolDataUrl(definition, resolvedColor) ??
+    `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${definition.viewBox}">${definition.svgBody.replace(/{{color}}/g, resolvedColor)}</svg>`)}`;
   return (
     <SVG
       src={dataSrc}
@@ -287,7 +286,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
       rawValue?: string | number
     ) => {
       const valuesArray = materializeValueArray(incomingValues);
-      const snapshot = valuesArray.map(String).sort().join("|");
+      const snapshot = updateEnabledWkidsSnapshot(valuesArray);
       if (snapshot === enabledSnapshotRef.current) {
         return;
       }
@@ -305,14 +304,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
         enabledWkids: enabled,
       });
 
-      let updates: Partial<KoordinaterConfig> = {
-        enabledWkids: enabled,
-      };
-      const nextWkid = ensureValidWkid(localWkid, enabled);
-      if (nextWkid !== localWkid) {
-        setLocalWkid(nextWkid);
-        updates = { ...updates, swerefWkid: nextWkid };
-      }
+      const updates = validateAndUpdateWkid(localWkid, enabled, setLocalWkid);
       commitPartial(updates);
     }
   );
@@ -329,17 +321,14 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
         const restricted = restrictEnabledWkids(localEnabledWkids, false, {
           allowEmpty: true,
         });
-        enabledSnapshotRef.current = restricted.map(String).sort().join("|");
+        enabledSnapshotRef.current = updateEnabledWkidsSnapshot(
+          restricted.map(String)
+        );
         setLocalEnabledWkids(restricted);
-        let updates: Partial<KoordinaterConfig> = {
+        const updates: Partial<KoordinaterConfig> = {
           includeExtendedSystems: nextInclude,
-          enabledWkids: restricted,
+          ...validateAndUpdateWkid(localWkid, restricted, setLocalWkid),
         };
-        const nextWkid = ensureValidWkid(localWkid, restricted);
-        if (nextWkid !== localWkid) {
-          setLocalWkid(nextWkid);
-          updates = { ...updates, swerefWkid: nextWkid };
-        }
         commitPartial(updates);
         return;
       }

@@ -207,12 +207,14 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
     setHasPinnedPoint(false);
   });
 
-  const applyPinGraphic = hooks.useEventCallback((pt: __esri.Point | null) => {
-    if (!pt) return;
-    pinManager.rememberPinnedPoint(pt);
-    pinManager.applyGraphic(pt);
-    setHasPinnedPoint(true);
-  });
+  const applyPinGraphic = hooks.useEventCallback(
+    (point: __esri.Point | null) => {
+      if (!point) return;
+      pinManager.rememberPinnedPoint(point);
+      pinManager.applyGraphic(point);
+      setHasPinnedPoint(true);
+    }
+  );
 
   hooks.useUpdateEffect(() => {
     if (config.enablePin) return;
@@ -229,9 +231,9 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
       return;
     }
     if (!modules?.Graphic) return;
-    const pt = getPinnedPoint();
-    if (!pt) return;
-    applyPinGraphic(pt);
+    const point = getPinnedPoint();
+    if (!point) return;
+    applyPinGraphic(point);
   }, [isPinned, modules, getPinnedPoint, applyPinGraphic, clearPinGraphic]);
 
   // If map view disappears, reset pin state and clear graphics
@@ -260,19 +262,19 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
 
   const updateFromPoint = hooks.useEventCallback(
     async (
-      pt: __esri.Point | null,
+      point: __esri.Point | null,
       options?: { syncPin?: boolean }
     ): Promise<string | null> => {
       const syncPin = options?.syncPin ?? false;
       const seq = ++formatSeqRef.current;
-      projection.rememberPoint(pt);
+      projection.rememberPoint(point);
       const emptyValueText = noValueTextRef.current;
       if (!emptyValueText) {
         throw new Error("Missing translation for 'noValue'");
       }
       let formatted = emptyValueText;
       try {
-        formatted = await projection.formatPoint(pt);
+        formatted = await projection.formatPoint(point);
       } catch {
         formatted = emptyValueText;
       }
@@ -281,8 +283,8 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
       }
       setText(formatted);
       if (syncPin) {
-        if (pt && isPinnedRef.current) {
-          applyPinGraphic(pt);
+        if (point && isPinnedRef.current) {
+          applyPinGraphic(point);
         } else {
           clearPinGraphic();
         }
@@ -308,12 +310,12 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
 
   // Recompute formatted text when formatting-affecting settings change
   hooks.useUpdateEffect(() => {
-    const lp = projection.getLastPoint();
-    if (!lp) {
+    const lastPoint = projection.getLastPoint();
+    if (!lastPoint) {
       setText(noValueText);
       return;
     }
-    updateFromPoint(lp).catch(() => undefined);
+    updateFromPoint(lastPoint).catch(() => undefined);
   }, [selectedWkid, config.precision, noValueText, updateFromPoint]);
 
   const onJmvChange = hooks.useEventCallback((mv: JimuMapView) => {
@@ -330,13 +332,13 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   });
 
   const handleMapClick = hooks.useEventCallback(
-    async (e: __esri.ViewClickEvent) => {
+    async (event: __esri.ViewClickEvent) => {
       const view = viewRef.current;
       if (!view) return;
-      const pt = view.toMap({ x: e?.x, y: e?.y });
-      if (!pt) return;
+      const point = view.toMap({ x: event?.x, y: event?.y });
+      if (!point) return;
       try {
-        const formatted = await updateFromPoint(pt, { syncPin: true });
+        const formatted = await updateFromPoint(point, { syncPin: true });
         const emptyValueText = noValueTextRef.current;
         if (
           formatted &&
@@ -360,12 +362,12 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   });
 
   const onPinToggle = hooks.useEventCallback(
-    (e?: React.MouseEvent<HTMLButtonElement>) => {
-      e?.preventDefault();
-      if (e?.stopPropagation) {
-        e.stopPropagation();
+    (event?: React.MouseEvent<HTMLButtonElement>) => {
+      event?.preventDefault();
+      if (event?.stopPropagation) {
+        event.stopPropagation();
       }
-      const nativeEvent = e?.nativeEvent as NativeEventWithStop | undefined;
+      const nativeEvent = event?.nativeEvent as NativeEventWithStop | undefined;
       if (nativeEvent?.stopImmediatePropagation) {
         nativeEvent.stopImmediatePropagation();
       }
@@ -400,13 +402,15 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   });
 
   // Keyboard accessibility: Enter/Space triggers copy when enabled
-  const onOutputKeyDown = hooks.useEventCallback((e: React.KeyboardEvent) => {
-    if (!outputInteractive) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      copyValueToClipboard();
+  const onOutputKeyDown = hooks.useEventCallback(
+    (event: React.KeyboardEvent) => {
+      if (!outputInteractive) return;
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        copyValueToClipboard();
+      }
     }
-  });
+  );
 
   const pinIconSrc = isPinned ? pinOffSvg : pinSvg;
 

@@ -839,3 +839,14 @@ export const sanitizePrecision = (
   fallback: number,
   limits?: { min?: number; max?: number }
 ): number => ConfigSanitizers.precision(value, fallback, limits);
+
+export const resolveEffectiveWkid = (
+  wkid: number,
+  _longitude?: number
+): number => {
+  const option = getCoordinateOption(wkid);
+  if (!option) {
+    return getDefaultWkidForSystem(FALLBACK_SYSTEM_ID);
+  }
+  return option.wkid;
+};

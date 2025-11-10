@@ -151,11 +151,11 @@ export const usePointerSubscriptions = (params: PointerSubscriptionsParams) => {
           if (!latestEvt || !viewRef.current) return;
 
           lastProcessedPosRef.current = { x: latestEvt.x, y: latestEvt.y };
-          const pt = viewRef.current.toMap({
+          const point = viewRef.current.toMap({
             x: latestEvt.x,
             y: latestEvt.y,
           });
-          await updateRef.current(pt);
+          await updateRef.current(point);
         });
       }
     );
@@ -343,9 +343,9 @@ export const usePinGraphicManager = (
     pinGraphicRef.current = null;
   });
 
-  const applyGraphic = hooks.useEventCallback((pt: __esri.Point | null) => {
+  const applyGraphic = hooks.useEventCallback((point: __esri.Point | null) => {
     const GraphicCtor = modulesRef.current?.Graphic;
-    if (!pt || !GraphicCtor) return;
+    if (!point || !GraphicCtor) return;
 
     const layer = ensureLayerSynced();
     if (!layer) return;
@@ -359,10 +359,10 @@ export const usePinGraphicManager = (
     try {
       let graphic = pinGraphicRef.current;
       if (!graphic) {
-        graphic = new GraphicCtor({ geometry: pt, symbol });
+        graphic = new GraphicCtor({ geometry: point, symbol });
         pinGraphicRef.current = graphic;
       } else {
-        graphic.geometry = pt;
+        graphic.geometry = point;
         graphic.symbol = symbol;
       }
 
@@ -374,14 +374,14 @@ export const usePinGraphicManager = (
   });
 
   const reapplyPinnedGraphic = hooks.useEventCallback(() => {
-    const pt = pinnedPointRef.current;
-    if (!pt) return;
-    applyGraphic(pt);
+    const point = pinnedPointRef.current;
+    if (!point) return;
+    applyGraphic(point);
   });
 
   const rememberPinnedPoint = hooks.useEventCallback(
-    (pt: __esri.Point | null) => {
-      pinnedPointRef.current = pt;
+    (point: __esri.Point | null) => {
+      pinnedPointRef.current = point;
     }
   );
 
@@ -476,22 +476,22 @@ export const useProjectionManager = (
   });
 
   const formatPoint = hooks.useEventCallback(
-    async (pt: __esri.Point | null) => {
+    async (point: __esri.Point | null) => {
       const translateFn = translateRef.current;
       const emptyValueText = translateFn(NO_VALUE_MESSAGE_KEY);
       if (!emptyValueText) {
         throw new Error("Missing translation for 'noValue'");
       }
-      if (!pt) {
+      if (!point) {
         lastProjectionRef.current = null;
         return emptyValueText;
       }
-      const mods = modulesRef.current;
-      if (!mods) {
+      const modules = modulesRef.current;
+      if (!modules) {
         lastProjectionRef.current = null;
         return emptyValueText;
       }
-      const cfg = configRef.current;
+      const config = configRef.current;
       const effectiveWkid = resolveEffectiveWkid(
         selectedWkidRef.current,
         viewRef.current?.center?.longitude
@@ -503,16 +503,16 @@ export const useProjectionManager = (
       }
       try {
         const snapshot = await buildProjectionSnapshot(
-          pt,
+          point,
           option,
-          mods,
+          modules,
           getSpatialReference
         );
         if (!snapshot) {
           lastProjectionRef.current = null;
           return emptyValueText;
         }
-        const precision = resolvePrecisionForOption(option, cfg.precision);
+        const precision = resolvePrecisionForOption(option, config.precision);
         lastProjectionRef.current = snapshot;
 
         return buildFormattedOutput(
