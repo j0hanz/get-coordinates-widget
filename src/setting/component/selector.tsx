@@ -1,43 +1,24 @@
 /** @jsx jsx */
-import { classNames, css, hooks, jsx, polished } from "jimu-core";
+import { hooks, jsx, React } from "jimu-core";
 import {
   SettingRow,
   SettingSection,
 } from "jimu-ui/advanced/setting-components";
 import { Button, Icon } from "jimu-ui";
-import { StyleVariant } from "../../config";
+import { createStyleVariantSelectorStyles, StyleVariant } from "../../config";
 import type { StyleVariantSelectorProps } from "../../config";
 import defaultMessages from "../translations/default";
-
-const STYLE = css`
-  .active {
-    .style-img {
-      border: 2px solid var(--sys-color-primary-light);
-    }
-  }
-  .style-img {
-    border: 2px solid transparent;
-    height: ${polished.rem(36)} !important;
-    margin: 0;
-  }
-  .arrangement {
-    margin: 0;
-    height: auto;
-    background: #181818;
-  }
-  .arrangement-mt {
-    margin-top: ${polished.rem(12)};
-  }
-  & button {
-    width: ${polished.rem(108)};
-    height: ${polished.rem(80)};
-    padding: 0;
-  }
-`;
 
 const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
   const translate = hooks.useTranslation(defaultMessages);
   const { config, id, onSettingChange, currentVariant } = props;
+
+  const stylesRef = React.useRef(null);
+  let styles = stylesRef.current;
+  if (!styles) {
+    styles = createStyleVariantSelectorStyles();
+    stylesRef.current = styles;
+  }
 
   const handleStyleVariantChange = hooks.useEventCallback(
     (variant: StyleVariant) => {
@@ -48,39 +29,44 @@ const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
     }
   );
 
+  const isDefaultActive = currentVariant === StyleVariant.Default;
+  const isLinearActive = currentVariant === StyleVariant.Linear;
+
   return (
-    <SettingSection title={translate("settingStyleVariant")} css={STYLE}>
+    <SettingSection title={translate("settingStyleVariant")}>
       <SettingRow>
-        <div aria-label={translate("settingStyleVariant")} role="radiogroup">
+        <div
+          aria-label={translate("settingStyleVariant")}
+          role="radiogroup"
+          css={styles.container}
+        >
           <Button
             type="tertiary"
             role="radio"
-            className={classNames("w-100 arrangement", {
-              active: currentVariant === StyleVariant.Default,
-            })}
+            css={[styles.button, isDefaultActive && styles.buttonActive]}
             onClick={() => handleStyleVariantChange(StyleVariant.Default)}
             title={translate("styleVariantDefault")}
             aria-label={translate("styleVariantDefault")}
-            aria-checked={currentVariant === StyleVariant.Default}
+            aria-checked={isDefaultActive}
           >
             <Icon
-              className="style-img w-100 h-100"
+              className="style-img"
+              css={styles.styleImg}
               icon={require("../../assets/style-coordinate.svg")}
             />
           </Button>
           <Button
             type="tertiary"
             role="radio"
-            className={classNames("w-100 arrangement arrangement-mt", {
-              active: currentVariant === StyleVariant.Linear,
-            })}
+            css={[styles.button, isLinearActive && styles.buttonActive]}
             onClick={() => handleStyleVariantChange(StyleVariant.Linear)}
             title={translate("styleVariantLinear")}
             aria-label={translate("styleVariantLinear")}
-            aria-checked={currentVariant === StyleVariant.Linear}
+            aria-checked={isLinearActive}
           >
             <Icon
-              className="style-img w-100 h-100"
+              className="style-img"
+              css={styles.styleImg}
               icon={require("../../assets/style-coordinate-liner.svg")}
             />
           </Button>

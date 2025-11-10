@@ -186,3 +186,32 @@ export const createSettingStyles = () => {
     }),
   };
 };
+
+export const createStyleVariantSelectorStyles = () => {
+  return {
+    container: css({
+      width: "100%",
+    }),
+    button: css({
+      width: 108,
+      height: 80,
+      padding: 0,
+      margin: 0,
+      background: "#181818",
+      "&:not(:first-of-type)": {
+        marginTop: 12,
+      },
+    }),
+    buttonActive: css({
+      "& .style-img": {
+        border: "2px solid var(--sys-color-primary-light)",
+      },
+    }),
+    styleImg: css({
+      border: "2px solid transparent",
+      height: 36,
+      margin: 0,
+      width: "100%",
+    }),
+  };
+};
