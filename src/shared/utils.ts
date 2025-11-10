@@ -344,7 +344,7 @@ const projectWgs84ToTarget = async (
       point,
       targetSr
     ) as __esri.Point | null;
-    return normalizeLongitudeIfNeeded(projected);
+    return projected;
   } catch (error: unknown) {
     return null;
   }
@@ -390,7 +390,12 @@ export const projectPointToOption = async (
     ? normalizeLongitudeIfNeeded(clonePoint(modules, point))
     : point;
 
-  return await projectWgs84ToTarget(sourcePoint, targetSr, projection);
+  const projected = await projectWgs84ToTarget(
+    sourcePoint,
+    targetSr,
+    projection
+  );
+  return normalizeLongitudeIfNeeded(projected);
 };
 
 export const buildProjectionSnapshot = async (

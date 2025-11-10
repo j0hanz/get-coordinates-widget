@@ -73,6 +73,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
     message: feedbackMessage,
     show: showFeedbackMessage,
     clear: clearFeedbackMessage,
+    cancel: cancelFeedback,
   } = useFeedbackController(translateRef);
 
   const { config } = useConfigState(props.config);
@@ -297,6 +298,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   hooks.useUnmount(() => {
     clearPinGraphic();
     clearFeedbackMessage();
+    cancelFeedback();
   });
 
   // React to settings changes that affect formatting or zone selection

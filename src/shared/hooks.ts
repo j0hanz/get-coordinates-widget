@@ -62,11 +62,15 @@ export const useFeedbackController = (
   const [message, setMessage] = React.useState<string | null>(null);
   const timeoutRef = React.useRef<number | null>(null);
 
-  const clear = hooks.useEventCallback(() => {
+  const cancel = hooks.useEventCallback(() => {
     if (timeoutRef.current != null) {
       window.clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+  });
+
+  const clear = hooks.useEventCallback(() => {
+    cancel();
     setMessage(null);
   });
 
@@ -79,10 +83,7 @@ export const useFeedbackController = (
     if (!text) {
       return;
     }
-    if (timeoutRef.current != null) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
+    cancel();
     setMessage(text);
     timeoutRef.current = window.setTimeout(() => {
       timeoutRef.current = null;
@@ -98,6 +99,7 @@ export const useFeedbackController = (
     message,
     show,
     clear,
+    cancel,
   };
 };
 
@@ -428,11 +430,7 @@ export const usePinGraphicManager = (
   hooks.useUpdateEffect(() => {
     ensureLayerSynced();
     reapplyPinnedGraphic();
-  }, [view, extraModules]);
-
-  hooks.useUpdateEffect(() => {
-    reapplyPinnedGraphic();
-  }, [modules]);
+  }, [view, extraModules, modules]);
 
   hooks.useUpdateEffect(() => {
     symbolUrlRef.current = null;
