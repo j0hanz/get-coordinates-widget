@@ -10,6 +10,7 @@ import { ColorPicker as JimuColorPicker } from "jimu-ui/basic/color-picker";
 import {
   AdvancedButtonGroup,
   Button,
+  defaultMessages as jimuUIMessages,
   MultiSelect,
   MultiSelectItem,
   NumericInput,
@@ -170,7 +171,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
   props
 ) => {
   useTheme();
-  const translate = hooks.useTranslation(defaultMessages);
+  const translate = hooks.useTranslation(jimuUIMessages, defaultMessages);
   const cfg = props.config;
   const sanitizedConfig = buildConfig(cfg);
   const sanitizedPrecisionRef = hooks.useLatest(sanitizedConfig.precision);

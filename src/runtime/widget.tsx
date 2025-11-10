@@ -7,6 +7,7 @@ import {
   DropdownButton,
   DropdownItem,
   DropdownMenu,
+  defaultMessages as jimuUIMessages,
   SVG,
 } from "jimu-ui";
 import { useTheme } from "jimu-theme";
@@ -66,7 +67,7 @@ function useStyles() {
 }
 
 const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
-  const translate = hooks.useTranslation(defaultMessages);
+  const translate = hooks.useTranslation(jimuUIMessages, defaultMessages);
   const translateRef = hooks.useLatest(translate);
   const {
     message: feedbackMessage,
