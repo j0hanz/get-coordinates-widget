@@ -198,7 +198,7 @@ export const createStyleVariantSelectorStyles = () => {
     button: css({
       flex: "1 1 auto",
       minWidth: 104,
-      height: 40,
+      height: 80,
       padding: 0,
       margin: 0,
       background: "#181818",
