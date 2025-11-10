@@ -2,7 +2,6 @@ import { hooks, React } from "jimu-core";
 import { loadArcGISJSAPIModules } from "jimu-arcgis";
 import { saveAs } from "file-saver";
 import {
-  AXIS_VALUE_SEPARATOR,
   buildConfig,
   buildExportFilename,
   buildPinSymbolDataUrl,
@@ -33,8 +32,9 @@ import {
 } from "../config";
 import {
   buildProjectionSnapshot,
-  formatNumber,
+  formatCoordinateDisplay,
   formatSnapshotForClipboard,
+  hasMethod,
 } from "./utils";
 
 const { hexColor: sanitizeHexColor } = ConfigSanitizers;
@@ -85,10 +85,14 @@ export const useFeedbackController = (
     }
     cancel();
     setMessage(text);
-    timeoutRef.current = window.setTimeout(() => {
-      timeoutRef.current = null;
+    try {
+      timeoutRef.current = window.setTimeout(() => {
+        timeoutRef.current = null;
+        setMessage(null);
+      }, 1000);
+    } catch {
       setMessage(null);
-    }, 1000);
+    }
   });
 
   hooks.useUnmount(() => {
@@ -202,11 +206,11 @@ export const useArcGisModuleLoader = <T>(
       .then((loaded) => {
         try {
           setValue(mapResult(...loaded));
-        } catch (_error: unknown) {
+        } catch {
           setValue(null);
         }
       })
-      .catch((_error: unknown) => {
+      .catch(() => {
         /* swallow load failures */
       });
   });
@@ -224,7 +228,7 @@ const createPinSymbol = (
   yoffset: definition.mapSymbol.yOffset,
 });
 
-const safeRemove = <T, U>(
+const removeGraphicSafely = <T, U>(
   container: T | null,
   item: U | null,
   removeFn: (container: T, item: U) => void
@@ -232,7 +236,7 @@ const safeRemove = <T, U>(
   if (!container || !item) return;
   try {
     removeFn(container, item);
-  } catch (error: unknown) {
+  } catch {
     /* ignore removal errors */
   }
 };
@@ -249,7 +253,7 @@ const ensureGraphicsLayerSynced = (
   const previousMap = pinLayerMapRef.current;
 
   if (!currentView) {
-    safeRemove(previousMap, existingLayer, (m, l) => m.remove(l));
+    removeGraphicSafely(previousMap, existingLayer, (m, l) => m.remove(l));
     pinLayerRef.current = null;
     pinLayerMapRef.current = null;
     return null;
@@ -258,7 +262,7 @@ const ensureGraphicsLayerSynced = (
   const map = currentView.map;
 
   if (existingLayer && previousMap && previousMap !== map) {
-    safeRemove(previousMap, existingLayer, (m, l) => m.remove(l));
+    removeGraphicSafely(previousMap, existingLayer, (m, l) => m.remove(l));
     pinLayerRef.current = null;
     pinLayerMapRef.current = null;
   }
@@ -370,9 +374,13 @@ export const usePinGraphicManager = (
 
   const clearGraphic = hooks.useEventCallback(() => {
     pinnedPointRef.current = null;
-    safeRemove(pinLayerRef.current, pinGraphicRef.current, (layer, graphic) => {
-      layer.remove(graphic);
-    });
+    removeGraphicSafely(
+      pinLayerRef.current,
+      pinGraphicRef.current,
+      (layer, graphic) => {
+        layer.remove(graphic);
+      }
+    );
     pinGraphicRef.current = null;
   });
 
@@ -406,9 +414,9 @@ export const usePinGraphicManager = (
         graphic.symbol = symbol;
       }
 
-      safeRemove(layer, graphic, (l, g) => l.remove(g));
+      removeGraphicSafely(layer, graphic, (l, g) => l.remove(g));
       layer.add(graphic);
-    } catch (error: unknown) {
+    } catch {
       /* ignore rendering errors silently */
     }
   });
@@ -441,8 +449,10 @@ export const usePinGraphicManager = (
 
   hooks.useUnmount(() => {
     clearGraphic();
-    safeRemove(pinLayerMapRef.current, pinLayerRef.current, (map, layer) =>
-      map.remove(layer)
+    removeGraphicSafely(
+      pinLayerMapRef.current,
+      pinLayerRef.current,
+      (map, layer) => map.remove(layer)
     );
     pinLayerRef.current = null;
     pinLayerMapRef.current = null;
@@ -454,34 +464,6 @@ export const usePinGraphicManager = (
     clearGraphic,
     getPinnedPoint,
   };
-};
-
-const formatCoordinateAxis = (
-  value: number,
-  precision: number,
-  emptyText: string
-): string => {
-  return formatNumber(value, precision, emptyText);
-};
-
-const buildFormattedOutput = (
-  snapshot: ExportProjectionSnapshot,
-  precision: number,
-  translate: (id: string) => string,
-  emptyValueText: string
-): string => {
-  const firstFormatted = formatCoordinateAxis(
-    snapshot.firstValue,
-    precision,
-    emptyValueText
-  );
-  const secondFormatted = formatCoordinateAxis(
-    snapshot.secondValue,
-    precision,
-    emptyValueText
-  );
-
-  return `${translate(snapshot.firstAxis)}:${AXIS_VALUE_SEPARATOR}${firstFormatted}, ${translate(snapshot.secondAxis)}:${AXIS_VALUE_SEPARATOR}${secondFormatted}`;
 };
 
 export const useProjectionManager = (
@@ -551,13 +533,13 @@ export const useProjectionManager = (
         const precision = resolvePrecisionForOption(option, config.precision);
         lastProjectionRef.current = snapshot;
 
-        return buildFormattedOutput(
+        return formatCoordinateDisplay(
           snapshot,
           precision,
           translateFn,
           emptyValueText
         );
-      } catch (error: unknown) {
+      } catch {
         lastProjectionRef.current = null;
         return emptyValueText;
       }
@@ -606,10 +588,8 @@ export const useProjectionManager = (
 const hasToJSON = (
   point: __esri.Point | null
 ): point is __esri.Point & { toJSON: () => __esri.PointProperties } => {
-  return (
-    point !== null &&
-    typeof (point as { toJSON?: unknown }).toJSON === "function"
-  );
+  if (point === null) return false;
+  return hasMethod<"toJSON">(point, "toJSON");
 };
 
 export const useExportManager = (
@@ -655,8 +635,8 @@ export const useExportManager = (
     try {
       const blob = new Blob([content], { type: mime });
       saveAs(blob, filename);
-    } catch (error: unknown) {
-      /* ignore download errors to avoid leaking environment details */
+    } catch {
+      /* ignore download errors: Blob API unavailable, quota exceeded, or file-saver failure */
     }
   });
 

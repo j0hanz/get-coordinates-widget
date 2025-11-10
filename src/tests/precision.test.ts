@@ -316,27 +316,27 @@ describe("formatCoordinateOptionLabel", () => {
   });
 });
 
-describe("hasCopyableText", () => {
+describe("isValidClipboardText", () => {
   const emptyValueText = runtimeMessages.noValue;
 
   it("returns false for nullish values", () => {
-    expect(projectionTestHelpers.hasCopyableText(null, emptyValueText)).toBe(
-      false
-    );
     expect(
-      projectionTestHelpers.hasCopyableText(undefined, emptyValueText)
+      projectionTestHelpers.isValidClipboardText(null, emptyValueText)
+    ).toBe(false);
+    expect(
+      projectionTestHelpers.isValidClipboardText(undefined, emptyValueText)
     ).toBe(false);
   });
 
   it("returns false when value matches the empty-value text", () => {
     expect(
-      projectionTestHelpers.hasCopyableText(emptyValueText, emptyValueText)
+      projectionTestHelpers.isValidClipboardText(emptyValueText, emptyValueText)
     ).toBe(false);
   });
 
   it("returns true for meaningful coordinate text", () => {
     expect(
-      projectionTestHelpers.hasCopyableText("658742.12", emptyValueText)
+      projectionTestHelpers.isValidClipboardText("658742.12", emptyValueText)
     ).toBe(true);
   });
 });

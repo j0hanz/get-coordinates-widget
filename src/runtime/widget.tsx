@@ -38,11 +38,11 @@ import {
   useProjectionManager,
 } from "../shared/hooks";
 import {
+  buildSpatialReferenceGetter,
   copyTextToClipboard,
-  createSpatialReferenceFactory,
   evaluateKoordinaterReadiness,
   formatSnapshotForClipboard,
-  hasCopyableText,
+  isValidClipboardText,
   projectPointToOption,
 } from "../shared/utils";
 import defaultMessages from "./translations/default";
@@ -155,10 +155,10 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   }, [config.enabledWkids]);
 
   const getSpatialReferenceRef = React.useRef(
-    createSpatialReferenceFactory(modules)
+    buildSpatialReferenceGetter(modules)
   );
   hooks.useUpdateEffect(() => {
-    getSpatialReferenceRef.current = createSpatialReferenceFactory(modules);
+    getSpatialReferenceRef.current = buildSpatialReferenceGetter(modules);
   }, [modules]);
   const getSpatialReference = getSpatialReferenceRef.current;
 
@@ -196,7 +196,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   const canCopyCurrentText =
     readiness.status === "ready" &&
     !shouldShowPinInstruction &&
-    hasCopyableText(text, noValueText);
+    isValidClipboardText(text, noValueText);
   const outputInteractive = canCopyCurrentText;
   const shouldRenderFormatDropdown =
     readiness.status === "ready" && allowedOptions.length >= 2;
@@ -351,7 +351,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
           formatted &&
           emptyValueText &&
           config.copyOnClick &&
-          hasCopyableText(formatted, emptyValueText)
+          isValidClipboardText(formatted, emptyValueText)
         ) {
           copyValueToClipboard();
         }
@@ -564,6 +564,6 @@ export default KoordinaterWidget;
 
 export const projectionTestHelpers = {
   projectPointToOption,
-  hasCopyableText,
+  isValidClipboardText,
   formatSnapshotForClipboard,
 };

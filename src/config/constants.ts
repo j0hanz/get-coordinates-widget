@@ -760,11 +760,6 @@ const coerceEnabledWkids = (
   });
 };
 
-const readKoordinaterConfigValue = (
-  candidate: unknown,
-  key: keyof KoordinaterConfig
-): unknown => readConfigValue(candidate, key);
-
 export const buildConfig = (partial: unknown): KoordinaterConfig => {
   const base: KoordinaterConfig = {
     swerefWkid: defaultConfig.swerefWkid,
@@ -780,56 +775,53 @@ export const buildConfig = (partial: unknown): KoordinaterConfig => {
   };
 
   const includeExtended = ConfigCoercers.boolean(
-    readKoordinaterConfigValue(partial, "includeExtendedSystems"),
+    readConfigValue(partial, "includeExtendedSystems"),
     base.includeExtendedSystems
   );
 
   const enabledWkids = coerceEnabledWkids(
-    readKoordinaterConfigValue(partial, "enabledWkids"),
+    readConfigValue(partial, "enabledWkids"),
     includeExtended
   );
 
   const resolvedWkid = ensureValidWkid(
     ConfigSanitizers.wkid(
-      readKoordinaterConfigValue(partial, "swerefWkid"),
+      readConfigValue(partial, "swerefWkid"),
       DEFAULT_SWEREF_WKID
     ),
     enabledWkids
   );
 
   const precision = ConfigSanitizers.precision(
-    readKoordinaterConfigValue(partial, "precision"),
+    readConfigValue(partial, "precision"),
     base.precision
   );
 
   const showExportButton = ConfigCoercers.boolean(
-    readKoordinaterConfigValue(partial, "showExportButton"),
+    readConfigValue(partial, "showExportButton"),
     base.showExportButton
   );
 
   const copyOnClick = ConfigCoercers.boolean(
-    readKoordinaterConfigValue(partial, "copyOnClick"),
+    readConfigValue(partial, "copyOnClick"),
     base.copyOnClick
   );
 
   const enablePin = ConfigCoercers.boolean(
-    readKoordinaterConfigValue(partial, "enablePin"),
+    readConfigValue(partial, "enablePin"),
     base.enablePin
   );
 
   const pinFillColor = ConfigSanitizers.hexColor(
-    readKoordinaterConfigValue(partial, "pinFillColor"),
+    readConfigValue(partial, "pinFillColor"),
     base.pinFillColor
   );
 
   const pinIconId = ConfigSanitizers.pinIconId(
-    readKoordinaterConfigValue(partial, "pinIconId")
+    readConfigValue(partial, "pinIconId")
   );
 
-  const styleVariantCandidate = readKoordinaterConfigValue(
-    partial,
-    "styleVariant"
-  );
+  const styleVariantCandidate = readConfigValue(partial, "styleVariant");
   const styleVariant =
     styleVariantCandidate === StyleVariant.Linear ||
     styleVariantCandidate === StyleVariant.Default

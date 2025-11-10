@@ -44,15 +44,23 @@ const sanitizeAxes = (axes: unknown): ExportAxisPayload[] => {
 };
 
 const sanitizeTimestamp = (value: unknown): string => {
-  const candidate = ConfigCoercers.string(value, "");
-  if (!candidate) {
-    return new Date().toISOString();
+  try {
+    const candidate = ConfigCoercers.string(value, "");
+    if (!candidate) {
+      return new Date().toISOString();
+    }
+    const parsed = Date.parse(candidate);
+    if (Number.isNaN(parsed)) {
+      return new Date().toISOString();
+    }
+    return new Date(parsed).toISOString();
+  } catch {
+    try {
+      return new Date().toISOString();
+    } catch {
+      return new Date(Date.now()).toISOString();
+    }
   }
-  const parsed = Date.parse(candidate);
-  if (Number.isNaN(parsed)) {
-    return new Date().toISOString();
-  }
-  return new Date(parsed).toISOString();
 };
 
 const sanitizePointJson = (value: unknown): __esri.PointProperties | null =>
@@ -98,11 +106,31 @@ const formatAxesAsYaml = (axes: ExportAxisPayload[]): string[] =>
       `  - label: "${escapeYamlString(axis.label)}"\n    value: ${axis.value}`
   );
 
-const formatExportAsJson = (payload: ExportPayload) =>
-  JSON.stringify(payload, null, 2);
+const formatExportAsJson = (payload: ExportPayload) => {
+  try {
+    return JSON.stringify(payload, null, 2);
+  } catch {
+    return JSON.stringify(
+      {
+        error: "Serialization failed",
+        wkid: payload.wkid,
+        system: payload.system,
+        zoneLabel: payload.zoneLabel,
+      },
+      null,
+      2
+    );
+  }
+};
 
 const formatExportAsXml = (payload: ExportPayload) => {
   const axes = formatAxesAsXml(payload.axes);
+  let pointJsonString = "null";
+  try {
+    pointJsonString = JSON.stringify(payload.pointJSON);
+  } catch {
+    pointJsonString = "null";
+  }
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n<coordinates>` +
     `\n  <wkid>${escapeXml(String(payload.wkid))}</wkid>` +
@@ -111,13 +139,19 @@ const formatExportAsXml = (payload: ExportPayload) => {
     `\n  <axes>\n${axes}\n  </axes>` +
     `\n  <precision>${escapeXml(String(payload.precision))}</precision>` +
     `\n  <timestamp>${escapeXml(payload.timestamp)}</timestamp>` +
-    `\n  <pointJSON>${escapeXml(JSON.stringify(payload.pointJSON))}</pointJSON>` +
+    `\n  <pointJSON>${escapeXml(pointJsonString)}</pointJSON>` +
     "\n</coordinates>\n"
   );
 };
 
-const formatExportAsYaml = (payload: ExportPayload) =>
-  [
+const formatExportAsYaml = (payload: ExportPayload) => {
+  let pointJsonString = "null";
+  try {
+    pointJsonString = JSON.stringify(payload.pointJSON);
+  } catch {
+    pointJsonString = "null";
+  }
+  return [
     `wkid: ${payload.wkid}`,
     `system: ${payload.system}`,
     `zoneLabel: "${escapeYamlString(payload.zoneLabel)}"`,
@@ -125,8 +159,9 @@ const formatExportAsYaml = (payload: ExportPayload) =>
     ...formatAxesAsYaml(payload.axes),
     `precision: ${payload.precision}`,
     `timestamp: "${payload.timestamp}"`,
-    `pointJSON: ${JSON.stringify(payload.pointJSON)}`,
+    `pointJSON: ${pointJsonString}`,
   ].join("\n");
+};
 
 const getExportFormatMeta = (value: unknown): ExportFormatDescriptor | null => {
   if (typeof value !== "string") {

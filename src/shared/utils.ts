@@ -1,4 +1,5 @@
 import copy from "copy-to-clipboard";
+import { AXIS_VALUE_SEPARATOR } from "../config/constants";
 import type {
   CoordinateOption,
   EvaluateReadinessParams,
@@ -62,7 +63,7 @@ export const copyTextToClipboard = (
   if (!value) return false;
   try {
     return copy(value, { format: "text/plain" });
-  } catch (error: unknown) {
+  } catch {
     return false;
   }
 };
@@ -77,17 +78,24 @@ export const resolveCheckedValue = (
   return !!event?.target?.checked;
 };
 
-const hasToArray = <T = string | number>(
-  value: unknown
-): value is ImmutableArrayLike<T> => {
+export const hasMethod = <K extends string>(
+  value: unknown,
+  methodName: K
+): value is { [P in K]: (...args: unknown[]) => unknown } & object => {
   return (
     typeof value === "object" &&
     value !== null &&
-    typeof (value as { toArray?: unknown }).toArray === "function"
+    typeof (value as { [key: string]: unknown })[methodName] === "function"
   );
 };
 
-export const materializeValueArray = (
+const hasToArray = <T = string | number>(
+  value: unknown
+): value is ImmutableArrayLike<T> => {
+  return hasMethod<"toArray">(value, "toArray");
+};
+
+export const toArrayValue = (
   source: MultiSelectValue
 ): Array<string | number> => {
   if (!source) {
@@ -102,10 +110,13 @@ export const materializeValueArray = (
   return [];
 };
 
-export const hasCopyableText = (
+export const isValidClipboardText = (
   value: string | null | undefined,
   emptyValueText: string
 ) => Boolean(value && value !== emptyValueText);
+
+export const isFiniteNumber = (value: number): boolean =>
+  Number.isFinite(value);
 
 export const isWebMercatorWkid = (wkid?: number): boolean =>
   wkid === 102100 || wkid === 3857 || wkid === 102113;
@@ -113,9 +124,7 @@ export const isWebMercatorWkid = (wkid?: number): boolean =>
 const hasClone = (
   point: __esri.Point
 ): point is __esri.Point & { clone: () => __esri.Point } => {
-  return (
-    typeof (point as __esri.Point & { clone?: unknown }).clone === "function"
-  );
+  return hasMethod<"clone">(point, "clone");
 };
 
 export const clonePoint = (
@@ -140,8 +149,7 @@ const hasNormalize = (
   return (
     point !== null &&
     !!point.spatialReference?.isWGS84 &&
-    typeof (point as __esri.Point & { normalize?: unknown }).normalize ===
-      "function"
+    hasMethod<"normalize">(point, "normalize")
   );
 };
 
@@ -151,7 +159,7 @@ export const normalizeLongitudeIfNeeded = (
   if (hasNormalize(point)) {
     try {
       point.normalize();
-    } catch (error: unknown) {
+    } catch {
       /* ignore normalization errors */
     }
   }
@@ -160,7 +168,7 @@ export const normalizeLongitudeIfNeeded = (
 
 const spatialReferenceCache: { [wkid: number]: __esri.SpatialReference } = {};
 
-export const createSpatialReferenceFactory = (
+export const buildSpatialReferenceGetter = (
   modules: KoordinaterModules | null
 ) => {
   return (wkid: number): __esri.SpatialReference | null => {
@@ -171,7 +179,7 @@ export const createSpatialReferenceFactory = (
         const SpatialReference = modules.SpatialReference;
         sr = new SpatialReference({ wkid });
         spatialReferenceCache[wkid] = sr;
-      } catch (error: unknown) {
+      } catch {
         return null;
       }
     }
@@ -209,7 +217,7 @@ export const toArray = <T = unknown>(value: unknown): T[] => {
     if (typeof candidate.toArray === "function") {
       try {
         return candidate.toArray();
-      } catch (error: unknown) {
+      } catch {
         return [];
       }
     }
@@ -217,7 +225,7 @@ export const toArray = <T = unknown>(value: unknown): T[] => {
       try {
         const jsValue = candidate.toJS();
         return Array.isArray(jsValue) ? (jsValue as T[]) : [];
-      } catch (error: unknown) {
+      } catch {
         return [];
       }
     }
@@ -226,12 +234,12 @@ export const toArray = <T = unknown>(value: unknown): T[] => {
 };
 
 export const toNumber = (value: unknown): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
+  if (typeof value === "number" && isFiniteNumber(value)) {
     return value;
   }
   if (typeof value === "string" && value.trim() !== "") {
     const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
+    if (isFiniteNumber(parsed)) {
       return parsed;
     }
   }
@@ -242,18 +250,18 @@ export const parseIntOrNull = (
   value: unknown,
   event?: React.ChangeEvent<HTMLInputElement>
 ): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
+  if (typeof value === "number" && isFiniteNumber(value)) {
     return Math.floor(value);
   }
   if (typeof value === "string") {
     const parsed = parseInt(value, 10);
-    if (Number.isFinite(parsed)) {
+    if (isFiniteNumber(parsed)) {
       return parsed;
     }
   }
   if (event?.target?.value) {
     const parsed = parseInt(event.target.value, 10);
-    if (Number.isFinite(parsed)) {
+    if (isFiniteNumber(parsed)) {
       return parsed;
     }
   }
@@ -273,7 +281,7 @@ export const readConfigValue = (candidate: unknown, key: string): unknown => {
   if (typeof maybeGetter.get === "function") {
     try {
       return maybeGetter.get(key);
-    } catch (error: unknown) {
+    } catch {
       return undefined;
     }
   }
@@ -289,16 +297,36 @@ export const formatNumber = (
   precision: number,
   emptyValueText: string
 ): string => {
-  if (Number.isNaN(value) || !Number.isFinite(value)) return emptyValueText;
+  if (Number.isNaN(value) || !isFiniteNumber(value)) return emptyValueText;
   try {
     return new Intl.NumberFormat(undefined, {
       maximumFractionDigits: precision,
       minimumFractionDigits: precision,
       useGrouping: false,
     }).format(value);
-  } catch (error: unknown) {
+  } catch {
     return value.toFixed(precision);
   }
+};
+
+export const formatCoordinateDisplay = (
+  snapshot: ExportProjectionSnapshot,
+  precision: number,
+  translate: (id: string) => string,
+  emptyValueText: string
+): string => {
+  const firstFormatted = formatNumber(
+    snapshot.firstValue,
+    precision,
+    emptyValueText
+  );
+  const secondFormatted = formatNumber(
+    snapshot.secondValue,
+    precision,
+    emptyValueText
+  );
+
+  return `${translate(snapshot.firstAxis)}:${AXIS_VALUE_SEPARATOR}${firstFormatted}, ${translate(snapshot.secondAxis)}:${AXIS_VALUE_SEPARATOR}${secondFormatted}`;
 };
 
 export const formatSnapshotForClipboard = (
@@ -308,12 +336,12 @@ export const formatSnapshotForClipboard = (
 ): string | null => {
   const safePrecision = Math.max(0, Math.floor(precision));
   const formatValue = (value: number): string | null => {
-    if (!Number.isFinite(value)) {
+    if (!isFiniteNumber(value)) {
       return null;
     }
     try {
       return value.toFixed(safePrecision);
-    } catch (error: unknown) {
+    } catch {
       return null;
     }
   };
@@ -345,7 +373,7 @@ const projectWgs84ToTarget = async (
       targetSr
     ) as __esri.Point | null;
     return projected;
-  } catch (error: unknown) {
+  } catch {
     return null;
   }
 };

@@ -45,9 +45,9 @@ import type {
 import { createSettingStyles } from "../config/style";
 import {
   evaluateKoordinaterReadiness,
-  materializeValueArray,
   parseIntOrNull,
   resolveCheckedValue,
+  toArrayValue,
 } from "../shared/utils";
 import StyleVariantSelector from "./component/selector";
 import defaultMessages from "./translations/default";
@@ -122,9 +122,18 @@ const PinIconPreview: React.FC<{
   styles: ReturnType<typeof createSettingStyles>;
 }> = ({ definition, color, styles }) => {
   const resolvedColor = sanitizeHexColor(color, DEFAULT_PIN_FILL_COLOR);
-  const dataSrc =
-    buildPinSymbolDataUrl(definition, resolvedColor) ??
-    `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${definition.viewBox}">${definition.svgBody.replace(/{{color}}/g, resolvedColor)}</svg>`)}`;
+  const dataSrc = React.useMemo(() => {
+    const prebuilt = buildPinSymbolDataUrl(definition, resolvedColor);
+    if (prebuilt) return prebuilt;
+
+    try {
+      return `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${definition.viewBox}">${definition.svgBody.replace(/{{color}}/g, resolvedColor)}</svg>`
+      )}`;
+    } catch {
+      return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"/>';
+    }
+  }, [definition, resolvedColor]);
   return (
     <SVG
       src={dataSrc}
@@ -272,7 +281,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
       source: "change" | "click",
       rawValue?: string | number
     ) => {
-      const valuesArray = materializeValueArray(incomingValues);
+      const valuesArray = toArrayValue(incomingValues);
       const snapshot = updateEnabledWkidsSnapshot(valuesArray);
       if (snapshot === enabledSnapshotRef.current) {
         return;
