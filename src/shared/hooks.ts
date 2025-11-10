@@ -17,6 +17,7 @@ import {
   formatCoordinateOptionLabel,
   getCoordinateOption,
   getPinIconDefinition,
+  type GraphicsLayerCtor,
   isExportFormat,
   type KoordinaterConfig,
   NO_VALUE_MESSAGE_KEY,
@@ -48,6 +49,11 @@ export const useConfigState = (configProp: unknown) => {
   }, [configProp]);
 
   return { config, setConfig };
+};
+
+export const useStagedState = <T>(initialValue: T | (() => T)) => {
+  const [value, setValue] = React.useState<T>(initialValue);
+  return [value, setValue] as const;
 };
 
 export const useFeedbackController = (
@@ -229,6 +235,110 @@ const safeRemove = <T, U>(
   }
 };
 
+const ensureGraphicsLayerSynced = (
+  viewRef: React.MutableRefObject<__esri.MapView | undefined>,
+  layerCtorRef: React.MutableRefObject<GraphicsLayerCtor | undefined>,
+  pinLayerRef: React.MutableRefObject<__esri.GraphicsLayer | null>,
+  pinLayerMapRef: React.MutableRefObject<__esri.Map | null>
+): __esri.GraphicsLayer | null => {
+  const currentView = viewRef.current;
+  const GraphicsLayerCtor = layerCtorRef.current;
+  const existingLayer = pinLayerRef.current;
+  const previousMap = pinLayerMapRef.current;
+
+  if (!currentView) {
+    safeRemove(previousMap, existingLayer, (m, l) => m.remove(l));
+    pinLayerRef.current = null;
+    pinLayerMapRef.current = null;
+    return null;
+  }
+
+  const map = currentView.map;
+
+  if (existingLayer && previousMap && previousMap !== map) {
+    safeRemove(previousMap, existingLayer, (m, l) => m.remove(l));
+    pinLayerRef.current = null;
+    pinLayerMapRef.current = null;
+  }
+
+  if (!pinLayerRef.current) {
+    if (!GraphicsLayerCtor) return null;
+    try {
+      const layer = new GraphicsLayerCtor({ listMode: "hide" });
+      pinLayerRef.current = layer;
+      pinLayerMapRef.current = map;
+      map.add(layer);
+    } catch {
+      pinLayerRef.current = null;
+      pinLayerMapRef.current = null;
+    }
+    return pinLayerRef.current;
+  }
+
+  pinLayerMapRef.current = map;
+  const layer = pinLayerRef.current;
+  const layers = map?.layers;
+  if (!layer) return null;
+
+  const alreadyAttached =
+    typeof layers?.includes === "function" ? layers.includes(layer) : false;
+  if (alreadyAttached) return layer;
+
+  try {
+    map.add(layer);
+  } catch {
+    /* ignore layer add errors */
+  }
+  return layer;
+};
+
+const resolveSymbolResources = (
+  colorRef: React.MutableRefObject<string>,
+  iconIdRef: React.MutableRefObject<PinIconId>,
+  symbolUrlRef: React.MutableRefObject<string | null>,
+  symbolColorRef: React.MutableRefObject<string | null>,
+  symbolIconIdRef: React.MutableRefObject<PinIconId | null>,
+  symbolCacheRef: React.MutableRefObject<Map<string, string>>
+): {
+  url: string;
+  definition: ReturnType<typeof getPinIconDefinition>;
+} | null => {
+  const desiredColor = sanitizeHexColor(
+    colorRef.current,
+    DEFAULT_PIN_FILL_COLOR
+  );
+  const iconId = iconIdRef.current ?? DEFAULT_PIN_ICON_ID;
+  const definition = getPinIconDefinition(iconId);
+
+  if (
+    symbolUrlRef.current &&
+    symbolColorRef.current === desiredColor &&
+    symbolIconIdRef.current === iconId
+  ) {
+    return {
+      url: symbolUrlRef.current,
+      definition,
+    };
+  }
+
+  const cacheKey = `${iconId}:${desiredColor}`;
+  const cached = symbolCacheRef.current.get(cacheKey);
+  if (cached) {
+    symbolUrlRef.current = cached;
+    symbolColorRef.current = desiredColor;
+    symbolIconIdRef.current = iconId;
+    return { url: cached, definition };
+  }
+
+  const url = buildPinSymbolDataUrl(definition, desiredColor);
+  if (!url) return null;
+  symbolCacheRef.current.set(cacheKey, url);
+  symbolUrlRef.current = url;
+  symbolColorRef.current = desiredColor;
+  symbolIconIdRef.current = iconId;
+  return { url, definition };
+};
+
 export const usePinGraphicManager = (
   params: PinGraphicManagerParams
 ): PinGraphicManager => {
@@ -247,93 +357,14 @@ export const usePinGraphicManager = (
   const symbolIconIdRef = React.useRef<PinIconId | null>(null);
   const symbolCacheRef = React.useRef<Map<string, string>>(new Map());
 
-  const resolveSymbolResources = hooks.useEventCallback(() => {
-    const desiredColor = sanitizeHexColor(
-      colorRef.current,
-      DEFAULT_PIN_FILL_COLOR
-    );
-    const iconId = iconIdRef.current ?? DEFAULT_PIN_ICON_ID;
-    const definition = getPinIconDefinition(iconId);
-    if (
-      symbolUrlRef.current &&
-      symbolColorRef.current === desiredColor &&
-      symbolIconIdRef.current === iconId
-    ) {
-      return {
-        url: symbolUrlRef.current,
-        definition,
-      };
-    }
-
-    const cacheKey = `${iconId}:${desiredColor}`;
-    const cached = symbolCacheRef.current.get(cacheKey);
-    if (cached) {
-      symbolUrlRef.current = cached;
-      symbolColorRef.current = desiredColor;
-      symbolIconIdRef.current = iconId;
-      return { url: cached, definition };
-    }
-
-    const url = buildPinSymbolDataUrl(definition, desiredColor);
-    if (!url) return null;
-    symbolCacheRef.current.set(cacheKey, url);
-    symbolUrlRef.current = url;
-    symbolColorRef.current = desiredColor;
-    symbolIconIdRef.current = iconId;
-    return { url, definition };
-  });
-
-  const ensureLayerSynced = hooks.useEventCallback(() => {
-    const viewCurrent = viewRef.current;
-    const GraphicsLayerCtor = layerCtorRef.current;
-    const existingLayer = pinLayerRef.current;
-    const previousMap = pinLayerMapRef.current;
-
-    if (!viewCurrent) {
-      safeRemove(previousMap, existingLayer, (m, l) => m.remove(l));
-      pinLayerRef.current = null;
-      pinLayerMapRef.current = null;
-      return null;
-    }
-
-    const map = viewCurrent.map;
-
-    if (existingLayer && previousMap && previousMap !== map) {
-      safeRemove(previousMap, existingLayer, (m, l) => m.remove(l));
-      pinLayerRef.current = null;
-      pinLayerMapRef.current = null;
-    }
-
-    if (!pinLayerRef.current) {
-      if (!GraphicsLayerCtor) return null;
-      try {
-        const layer = new GraphicsLayerCtor({ listMode: "hide" });
-        pinLayerRef.current = layer;
-        pinLayerMapRef.current = map;
-        map.add(layer);
-      } catch {
-        pinLayerRef.current = null;
-        pinLayerMapRef.current = null;
-      }
-      return pinLayerRef.current;
-    }
-
-    pinLayerMapRef.current = map;
-    const layer = pinLayerRef.current;
-    const layers = map?.layers;
-    if (!layer) return null;
-
-    const alreadyAttached =
-      typeof layers?.includes === "function" ? layers.includes(layer) : false;
-    if (alreadyAttached) return layer;
-
-    try {
-      map.add(layer);
-    } catch {
-      /* ignore layer add errors */
-    }
-    return layer;
-  });
+  const ensureLayerSynced = hooks.useEventCallback(() =>
+    ensureGraphicsLayerSynced(
+      viewRef,
+      layerCtorRef,
+      pinLayerRef,
+      pinLayerMapRef
+    )
+  );
 
   const clearGraphic = hooks.useEventCallback(() => {
     pinnedPointRef.current = null;
@@ -350,7 +381,14 @@ export const usePinGraphicManager = (
     const layer = ensureLayerSynced();
     if (!layer) return;
 
-    const symbolResources = resolveSymbolResources();
+    const symbolResources = resolveSymbolResources(
+      colorRef,
+      iconIdRef,
+      symbolUrlRef,
+      symbolColorRef,
+      symbolIconIdRef,
+      symbolCacheRef
+    );
     if (!symbolResources) return;
 
     const { url: symbolUrl, definition } = symbolResources;

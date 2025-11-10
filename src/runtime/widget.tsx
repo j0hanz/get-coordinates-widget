@@ -85,20 +85,24 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   const [isPinned, setIsPinned] = React.useState<boolean>(false);
   const [hasPinnedPoint, setHasPinnedPoint] = React.useState<boolean>(false);
 
-  const modules = useArcGisModuleLoader<KoordinaterModules>(
+  const modules = useArcGisModuleLoader<
+    KoordinaterModules & { GraphicsLayer?: GraphicsLayerCtor }
+  >(
     [
       "esri/geometry/Point",
       "esri/geometry/SpatialReference",
       "esri/geometry/projection",
       "esri/geometry/support/webMercatorUtils",
       "esri/Graphic",
+      "esri/layers/GraphicsLayer",
     ],
     (
       PointCtor,
       SpatialReferenceCtor,
       projectionModule,
       webMercatorUtilsModule,
-      GraphicCtor
+      GraphicCtor,
+      GraphicsLayerCtor
     ) => ({
       Point: PointCtor as KoordinaterModules["Point"],
       SpatialReference:
@@ -107,14 +111,9 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
       webMercatorUtils:
         webMercatorUtilsModule as KoordinaterModules["webMercatorUtils"],
       Graphic: GraphicCtor as KoordinaterModules["Graphic"],
+      GraphicsLayer: GraphicsLayerCtor as GraphicsLayerCtor,
     })
   );
-
-  const extraMods = useArcGisModuleLoader<{
-    GraphicsLayer?: GraphicsLayerCtor;
-  }>(["esri/layers/GraphicsLayer"], (GraphicsLayer) => ({
-    GraphicsLayer: GraphicsLayer as GraphicsLayerCtor,
-  }));
 
   const styles = useStyles();
   const noValueText = translate(NO_VALUE_MESSAGE_KEY);
@@ -132,7 +131,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   const pinManager = usePinGraphicManager({
     view: jmv?.view as __esri.MapView | undefined,
     modules,
-    extraModules: extraMods,
+    extraModules: modules,
     pinFillColor: config.pinFillColor,
     pinIconId: config.pinIconId,
   });

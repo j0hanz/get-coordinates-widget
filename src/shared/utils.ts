@@ -12,28 +12,15 @@ import type {
   ThemeRecord,
 } from "../config/types";
 
-const coerceHasMap = (
-  hasMap: EvaluateReadinessParams["hasMap"],
-  mapWidgetIds: EvaluateReadinessParams["mapWidgetIds"]
+const coerceBoolean = (
+  value: boolean | undefined,
+  arrayValue: readonly unknown[] | null | undefined
 ): boolean => {
-  if (typeof hasMap === "boolean") {
-    return hasMap;
+  if (typeof value === "boolean") {
+    return value;
   }
-  if (Array.isArray(mapWidgetIds)) {
-    return mapWidgetIds.length > 0;
-  }
-  return false;
-};
-
-const coerceHasFormats = (
-  hasFormats: EvaluateReadinessParams["hasFormats"],
-  enabledWkids: EvaluateReadinessParams["enabledWkids"]
-): boolean => {
-  if (typeof hasFormats === "boolean") {
-    return hasFormats;
-  }
-  if (Array.isArray(enabledWkids)) {
-    return enabledWkids.length > 0;
+  if (Array.isArray(arrayValue)) {
+    return arrayValue.length > 0;
   }
   return false;
 };
@@ -41,7 +28,7 @@ const coerceHasFormats = (
 export const evaluateKoordinaterReadiness = (
   params: EvaluateReadinessParams
 ): KoordinaterReadiness => {
-  const hasMap = coerceHasMap(params.hasMap, params.mapWidgetIds);
+  const hasMap = coerceBoolean(params.hasMap, params.mapWidgetIds);
   if (!hasMap) {
     return {
       hasMap: false,
@@ -51,7 +38,7 @@ export const evaluateKoordinaterReadiness = (
     };
   }
 
-  const hasFormats = coerceHasFormats(params.hasFormats, params.enabledWkids);
+  const hasFormats = coerceBoolean(params.hasFormats, params.enabledWkids);
   if (!hasFormats) {
     return {
       hasMap: true,
@@ -171,18 +158,19 @@ export const normalizeLongitudeIfNeeded = (
   return point;
 };
 
+const spatialReferenceCache: { [wkid: number]: __esri.SpatialReference } = {};
+
 export const createSpatialReferenceFactory = (
   modules: KoordinaterModules | null
 ) => {
-  const srCache: { [wkid: number]: __esri.SpatialReference } = {};
   return (wkid: number): __esri.SpatialReference | null => {
     if (!modules) return null;
-    let sr = srCache[wkid];
+    let sr = spatialReferenceCache[wkid];
     if (!sr) {
       try {
         const SpatialReference = modules.SpatialReference;
         sr = new SpatialReference({ wkid });
-        srCache[wkid] = sr;
+        spatialReferenceCache[wkid] = sr;
       } catch (error: unknown) {
         return null;
       }

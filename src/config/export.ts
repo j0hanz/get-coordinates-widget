@@ -15,6 +15,16 @@ import type {
   ExportProjectionSnapshot,
 } from "./types";
 
+const escapeXml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+
+const escapeYamlString = (value: string) => value.replace(/"/g, '\\"');
+
 export const isExportFormat = (value: unknown): value is ExportFormat =>
   typeof value === "string" && EXPORT_FORMAT_LOOKUP.has(value as ExportFormat);
 
@@ -73,16 +83,6 @@ export const sanitizeExportPayload = (payload: unknown): ExportPayload => {
     pointJSON,
   };
 };
-
-const escapeXml = (value: string) =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-
-const escapeYamlString = (value: string) => value.replace(/"/g, '\\"');
 
 const formatAxesAsXml = (axes: ExportAxisPayload[]): string =>
   axes
