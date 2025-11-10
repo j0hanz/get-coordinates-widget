@@ -31,6 +31,7 @@ describe("precision handling", () => {
 
     expect(sanitized.enabledWkids).toEqual(defaults);
     expect(sanitized.enabledWkids).not.toBe(defaults);
+    expect(sanitized.showProjectionParameters).toBe(false);
   });
 
   it("sanitizes partial configuration consistently", () => {
@@ -44,6 +45,7 @@ describe("precision handling", () => {
       enabledWkids: [3006, 3021],
       pinFillColor: "336699",
       pinIconId: "invalid" as unknown as PinIconId,
+      showProjectionParameters: "true",
     });
 
     expect(sanitized.swerefWkid).toBe(3006);
@@ -53,6 +55,7 @@ describe("precision handling", () => {
     expect(sanitized.pinIconId).toBe(DEFAULT_PIN_ICON_ID);
     expect(sanitized.includeExtendedSystems).toBe(true);
     expect(sanitized.showExportButton).toBe(false);
+    expect(sanitized.showProjectionParameters).toBe(true);
   });
 
   it("keeps configured precision for projected meter-based systems", () => {
@@ -193,7 +196,7 @@ describe("precision handling", () => {
       projection: projection as unknown as KoordinaterModules["projection"],
       webMercatorUtils: {
         webMercatorToGeographic: jest.fn(),
-      } as KoordinaterModules["webMercatorUtils"],
+      } as unknown as KoordinaterModules["webMercatorUtils"],
       Graphic: jest.fn() as unknown as KoordinaterModules["Graphic"],
     };
     const option = ETRS89_OPTIONS[0];
@@ -216,10 +219,22 @@ describe("formatCoordinateOptionLabel", () => {
   const translate = (key: string) =>
     (runtimeMessages as { [messageKey: string]: string })[key] ?? key;
 
-  it("omits duplicated system prefix for SWEREF zones", () => {
+  it("formats SWEREF 99 TM with enhanced label", () => {
     const option = SWEREF_ZONES[0];
     const label = formatCoordinateOptionLabel(option, translate);
-    expect(label).toBe("SWEREF 99 – TM (EPSG:3006)");
+    expect(label).toBe("SWEREF 99 TM (EPSG:3006)");
+  });
+
+  it("formats SWEREF 99 local zones with degree notation", () => {
+    const option = SWEREF_ZONES[1];
+    const label = formatCoordinateOptionLabel(option, translate);
+    expect(label).toBe("SWEREF 99 12°00′ E (EPSG:3007)");
+  });
+
+  it("formats SWEREF 99 half-degree zones with minutes", () => {
+    const option = SWEREF_ZONES[6];
+    const label = formatCoordinateOptionLabel(option, translate);
+    expect(label).toBe("SWEREF 99 14°15′ E (EPSG:3012)");
   });
 
   it("omits duplicated system prefix for RT90 zones", () => {

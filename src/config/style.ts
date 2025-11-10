@@ -69,6 +69,48 @@ export const createWidgetStyles = (theme: ThemeLike) => {
       opacity: 0,
       pointerEvents: "none",
       transition: "opacity 120ms ease",
+      projectionParams: css({
+        marginTop: spacing?.(2) ?? 8,
+        padding: spacing?.(2) ?? 8,
+        borderRadius: 4,
+        border: "1px solid var(--sys-color-outline, rgba(0,0,0,0.12))",
+        backgroundColor:
+          surface?.background ?? "var(--sys-color-surface-container-lowest)",
+        color: onSurface?.variant,
+        display: "flex",
+        flexDirection: "column",
+        gap: spacing?.(1) ?? 6,
+        width: "100%",
+      }),
+      projectionToggle: css({
+        alignSelf: "flex-start",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: spacing?.(1) ?? 6,
+        padding: 0,
+      }),
+      paramLabel: css({
+        fontWeight: 600,
+      }),
+      paramDetails: css({
+        display: "flex",
+        flexDirection: "column",
+        gap: spacing?.(0.5) ?? 4,
+      }),
+      paramRow: css({
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        fontSize: "0.85rem",
+        gap: spacing?.(1) ?? 8,
+      }),
+      paramKey: css({
+        color: onSurface?.variant ?? "var(--sys-color-on-surface-variant)",
+      }),
+      paramValue: css({
+        fontFamily: "monospace",
+        fontWeight: 600,
+      }),
       "&[data-visible='true']": {
         opacity: 0.25,
       },

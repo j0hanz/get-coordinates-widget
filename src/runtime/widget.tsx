@@ -12,6 +12,7 @@ import {
 import { useTheme } from "jimu-theme";
 import downIcon from "jimu-icons/svg/outlined/directional/down.svg";
 import copyIcon from "jimu-icons/svg/outlined/editor/copy.svg";
+import infoIcon from "jimu-icons/svg/outlined/suggested/info.svg";
 import {
   buildConfig,
   computeAllowedZones,
@@ -88,6 +89,9 @@ const KoordinaterWidget: React.FC<Props> = (props) => {
   const [text, setText] = React.useState<string>(defaultNoValueText);
   const [isPinned, setIsPinned] = React.useState<boolean>(false);
   const [hasPinnedPoint, setHasPinnedPoint] = React.useState<boolean>(false);
+  const [showParameterDetails, setShowParameterDetails] =
+    React.useState<boolean>(false);
+  const projectionPanelId = React.useId();
 
   const modules = useArcGisModuleLoader<KoordinaterModules>(
     [
@@ -202,6 +206,25 @@ const KoordinaterWidget: React.FC<Props> = (props) => {
   const outputInteractive = canCopyCurrentText;
   const shouldRenderFormatDropdown =
     readiness.status === "ready" && allowedOptions.length >= 2;
+  const selectedOption = allowedOptions.find(
+    (option) => option.wkid === selectedWkid
+  );
+  const shouldShowProjectionParameters =
+    !!config.showProjectionParameters && !!selectedOption?.metadata;
+  const selectedMetadata = selectedOption?.metadata ?? null;
+  const projectionLocale = "sv-SE";
+  const centralMeridianText = selectedMetadata
+    ? `${selectedMetadata.centralMeridian.toFixed(2)}° E`
+    : "";
+  const scaleFactorText = selectedMetadata
+    ? selectedMetadata.scaleFactor.toFixed(4)
+    : "";
+  const falseEastingText = selectedMetadata
+    ? `${selectedMetadata.falseEasting.toLocaleString(projectionLocale)} m`
+    : "";
+  const falseNorthingText = selectedMetadata
+    ? `${selectedMetadata.falseNorthing.toLocaleString(projectionLocale)} m`
+    : "";
   hooks.useUpdateEffect(() => {
     if (!outputInteractive) {
       setShowCopyIcon(false);
@@ -265,6 +288,16 @@ const KoordinaterWidget: React.FC<Props> = (props) => {
     }
   }, [allowedOptions, selectedWkid]);
   const formatSeqRef = React.useRef(0);
+
+  hooks.useUpdateEffect(() => {
+    setShowParameterDetails(false);
+  }, [selectedWkid]);
+
+  hooks.useUpdateEffect(() => {
+    if (!config.showProjectionParameters) {
+      setShowParameterDetails(false);
+    }
+  }, [config.showProjectionParameters]);
 
   const updateFromPoint = hooks.useEventCallback(
     async (
@@ -548,6 +581,52 @@ const KoordinaterWidget: React.FC<Props> = (props) => {
           )}
         </div>
       </div>
+      {shouldShowProjectionParameters && (
+        <div css={styles.projectionParams}>
+          <Button
+            type="tertiary"
+            size="sm"
+            css={styles.projectionToggle}
+            onClick={() => {
+              setShowParameterDetails((value) => !value);
+            }}
+            aria-expanded={showParameterDetails}
+            aria-controls={projectionPanelId}
+          >
+            <SVG
+              src={infoIcon}
+              size={14}
+              aria-hidden="true"
+              role="presentation"
+            />
+            <span css={styles.paramLabel}>
+              {translate("projectionParameters")}
+            </span>
+          </Button>
+          {showParameterDetails && (
+            <div css={styles.paramDetails} id={projectionPanelId}>
+              <div css={styles.paramRow}>
+                <span css={styles.paramKey}>
+                  {translate("centralMeridian")}
+                </span>
+                <span css={styles.paramValue}>{centralMeridianText}</span>
+              </div>
+              <div css={styles.paramRow}>
+                <span css={styles.paramKey}>{translate("scaleFactor")}</span>
+                <span css={styles.paramValue}>{scaleFactorText}</span>
+              </div>
+              <div css={styles.paramRow}>
+                <span css={styles.paramKey}>{translate("falseEasting")}</span>
+                <span css={styles.paramValue}>{falseEastingText}</span>
+              </div>
+              <div css={styles.paramRow}>
+                <span css={styles.paramKey}>{translate("falseNorthing")}</span>
+                <span css={styles.paramValue}>{falseNorthingText}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
