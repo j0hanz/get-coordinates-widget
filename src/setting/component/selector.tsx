@@ -4,12 +4,28 @@ import {
   SettingRow,
   SettingSection,
 } from "jimu-ui/advanced/setting-components";
-import { Button, SVG } from "jimu-ui";
+import { Button } from "jimu-ui";
 import { createStyleVariantSelectorStyles, StyleVariant } from "../../config";
 import type { StyleVariantSelectorProps } from "../../config";
 import defaultMessages from "../translations/default";
-import StyleCoordinateIcon from "../../assets/style-coordinate.svg";
-import StyleCoordinateLinerIcon from "../../assets/style-coordinate-liner.svg";
+
+const DefaultStyleIcon = () => (
+  <svg width="108" height="72" viewBox="0 0 108 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="26" width="92" height="20" fill="#ffffff"/>
+    <rect x="12" y="30" width="12" height="12" rx="6" fill="#131313"/>
+    <rect x="33" y="33" width="42" height="6" fill="#131313"/>
+    <rect x="84" y="30" width="12" height="12" rx="6" fill="#131313"/>
+  </svg>
+);
+
+const LinearStyleIcon = () => (
+  <svg width="108" height="72" viewBox="0 0 108 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="26" width="92" height="20" fill="rgba(0,0,0,0)"/>
+    <rect x="12" y="30" width="12" height="12" rx="6" fill="#ffffff"/>
+    <rect x="33" y="33" width="42" height="6" fill="#ffffff"/>
+    <rect x="84" y="30" width="12" height="12" rx="6" fill="#ffffff"/>
+  </svg>
+);
 
 const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
   const translate = hooks.useTranslation(defaultMessages);
@@ -52,12 +68,9 @@ const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
             aria-label={translate("styleVariantDefault")}
             aria-checked={isDefaultActive}
           >
-            <SVG 
-              src={StyleCoordinateIcon} 
-              css={styles.styleImg}
-              aria-hidden="true"
-              focusable="false"
-            />
+            <div css={styles.styleImg}>
+              <DefaultStyleIcon />
+            </div>
           </Button>
           <Button
             type="tertiary"
@@ -69,12 +82,9 @@ const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
             aria-label={translate("styleVariantLinear")}
             aria-checked={isLinearActive}
           >
-            <SVG 
-              src={StyleCoordinateLinerIcon} 
-              css={styles.styleImg}
-              aria-hidden="true"
-              focusable="false"
-            />
+            <div css={styles.styleImg}>
+              <LinearStyleIcon />
+            </div>
           </Button>
         </div>
       </SettingRow>

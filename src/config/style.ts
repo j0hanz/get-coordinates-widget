@@ -208,12 +208,10 @@ export const createStyleVariantSelectorStyles = () => {
       border: "2px solid var(--sys-color-primary-light)",
     }),
     styleImg: css({
-      height: "100%",
-      width: "100%",
-      "& svg": {
-        height: "100%",
-        width: "100%",
-      },
+      width: "auto",
+      height: "auto",
+      maxWidth: "100%",
+      maxHeight: "100%",
     }),
   };
 };
