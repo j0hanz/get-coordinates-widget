@@ -248,7 +248,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   // Reapply graphic when modules reload
   // Ensure current selection remains valid when allowed zones change
   // Keep selected wkid valid
-  React.useEffect(() => {
+  hooks.useUpdateEffect(() => {
     if (
       !allowedOptions.some((o) => o.wkid === selectedWkid) &&
       allowedOptions.length > 0
