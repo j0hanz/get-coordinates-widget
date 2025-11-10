@@ -10,20 +10,32 @@ import type { StyleVariantSelectorProps } from "../../config";
 import defaultMessages from "../translations/default";
 
 const DefaultStyleIcon = () => (
-  <svg width="108" height="72" viewBox="0 0 108 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="8" y="26" width="92" height="20" fill="#ffffff"/>
-    <rect x="12" y="30" width="12" height="12" rx="6" fill="#131313"/>
-    <rect x="33" y="33" width="42" height="6" fill="#131313"/>
-    <rect x="84" y="30" width="12" height="12" rx="6" fill="#131313"/>
+  <svg
+    width="108"
+    height="72"
+    viewBox="0 0 108 72"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect x="8" y="26" width="92" height="20" fill="#ffffff" />
+    <rect x="12" y="30" width="12" height="12" rx="6" fill="#131313" />
+    <rect x="33" y="33" width="42" height="6" fill="#131313" />
+    <rect x="84" y="30" width="12" height="12" rx="6" fill="#131313" />
   </svg>
 );
 
 const LinearStyleIcon = () => (
-  <svg width="108" height="72" viewBox="0 0 108 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="8" y="26" width="92" height="20" fill="rgba(0,0,0,0)"/>
-    <rect x="12" y="30" width="12" height="12" rx="6" fill="#ffffff"/>
-    <rect x="33" y="33" width="42" height="6" fill="#ffffff"/>
-    <rect x="84" y="30" width="12" height="12" rx="6" fill="#ffffff"/>
+  <svg
+    width="108"
+    height="72"
+    viewBox="0 0 108 72"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect x="8" y="26" width="92" height="20" fill="rgba(0,0,0,0)" />
+    <rect x="12" y="30" width="12" height="12" rx="6" fill="#ffffff" />
+    <rect x="33" y="33" width="42" height="6" fill="#ffffff" />
+    <rect x="84" y="30" width="12" height="12" rx="6" fill="#ffffff" />
   </svg>
 );
 
