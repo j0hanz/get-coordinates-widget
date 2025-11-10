@@ -7,7 +7,7 @@
   "includeExtendedSystems": false,
   "enabledWkids": [
     3006, 3007, 3008, 3009, 3010, 3011, 3012, 3013, 3014, 3015, 3016, 3017,
-    3018, 3019, 4669
+    3018, 4619
   ],
   "pinFillColor": "#000000",
   "pinIconId": "classicPin"

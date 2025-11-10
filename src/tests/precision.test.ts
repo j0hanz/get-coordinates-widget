@@ -24,6 +24,19 @@ import {
 import runtimeMessages from "../runtime/translations/default";
 import { projectionTestHelpers } from "../runtime/widget";
 
+describe("coordinate metadata", () => {
+  it("orders SWEREF projected axes northing-first", () => {
+    const option = SWEREF_ZONES[0];
+    expect(option.axisMessageKeys).toEqual(["northing", "easting"]);
+    expect(option.valueOrder).toBe("yx");
+  });
+
+  it("uses the correct SWEREF geodetic WKID", () => {
+    const option = SWEREF_GEODETIC_OPTIONS[0];
+    expect(option.wkid).toBe(4619);
+  });
+});
+
 describe("precision handling", () => {
   it("provides default enabled WKIDs when configuration omits them", () => {
     const sanitized = buildConfig({});
@@ -193,7 +206,7 @@ describe("precision handling", () => {
       projection: projection as unknown as KoordinaterModules["projection"],
       webMercatorUtils: {
         webMercatorToGeographic: jest.fn(),
-      } as KoordinaterModules["webMercatorUtils"],
+      } as unknown as KoordinaterModules["webMercatorUtils"],
       Graphic: jest.fn() as unknown as KoordinaterModules["Graphic"],
     };
     const option = ETRS89_OPTIONS[0];
