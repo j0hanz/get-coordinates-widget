@@ -28,7 +28,11 @@ import {
   resolvePrecisionForOption,
   serializeExportPayload,
 } from "../config";
-import { buildProjectionSnapshot, formatNumber } from "./utils";
+import {
+  buildProjectionSnapshot,
+  formatNumber,
+  formatSnapshotForClipboard,
+} from "./utils";
 
 const { hexColor: sanitizeHexColor } = ConfigSanitizers;
 
@@ -501,6 +505,26 @@ export const useProjectionManager = (
   const hasSnapshot = hooks.useEventCallback(
     () => lastPointRef.current != null && lastProjectionRef.current != null
   );
+  const formatClipboardText = hooks.useEventCallback(() => {
+    const snapshot = lastProjectionRef.current;
+    if (!snapshot) {
+      return null;
+    }
+    const translateFn = translateRef.current;
+    const emptyValueText = translateFn(NO_VALUE_MESSAGE_KEY);
+    if (!emptyValueText) {
+      return null;
+    }
+    const option = getCoordinateOption(snapshot.wkid);
+    if (!option) {
+      return null;
+    }
+    const precision = resolvePrecisionForOption(
+      option,
+      configRef.current.precision
+    );
+    return formatSnapshotForClipboard(snapshot, precision, emptyValueText);
+  });
 
   return {
     rememberPoint,
@@ -509,6 +533,7 @@ export const useProjectionManager = (
     getLastSnapshot,
     hasSnapshot,
     clearSnapshot,
+    formatClipboardText,
   };
 };
 

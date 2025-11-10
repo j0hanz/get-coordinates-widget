@@ -23,6 +23,7 @@ import {
 } from "../config";
 import runtimeMessages from "../runtime/translations/default";
 import { projectionTestHelpers } from "../runtime/widget";
+import { formatSnapshotForClipboard } from "../shared/utils";
 
 describe("coordinate metadata", () => {
   it("orders SWEREF projected axes northing-first", () => {
@@ -279,5 +280,67 @@ describe("hasCopyableText", () => {
     expect(
       projectionTestHelpers.hasCopyableText("658742.12", emptyValueText)
     ).toBe(true);
+  });
+});
+
+describe("formatSnapshotForClipboard", () => {
+  const emptyValueText = runtimeMessages.noValue;
+
+  it("returns numeric pairs without axis labels for projected coordinates", () => {
+    const snapshot: ExportProjectionSnapshot = {
+      wkid: SWEREF_ZONES[0].wkid,
+      system: SWEREF_ZONES[0].system,
+      firstValue: 658742.1289,
+      secondValue: 6581234.9821,
+      firstAxis: "easting",
+      secondAxis: "northing",
+    };
+    const precision = resolvePrecisionForOption(SWEREF_ZONES[0], 2);
+    const clipboardText = formatSnapshotForClipboard(
+      snapshot,
+      precision,
+      emptyValueText
+    );
+
+    expect(clipboardText).toBe("658742.13 6581234.98");
+    expect(clipboardText?.includes("easting")).toBe(false);
+    expect(clipboardText?.includes("northing")).toBe(false);
+  });
+
+  it("returns numeric pairs without axis labels for geodetic coordinates", () => {
+    const snapshot: ExportProjectionSnapshot = {
+      wkid: WGS84_OPTIONS[0].wkid,
+      system: WGS84_OPTIONS[0].system,
+      firstValue: 59.123456789,
+      secondValue: 18.987654321,
+      firstAxis: "latitude",
+      secondAxis: "longitude",
+    };
+    const precision = resolvePrecisionForOption(WGS84_OPTIONS[0], 2);
+    const clipboardText = formatSnapshotForClipboard(
+      snapshot,
+      precision,
+      emptyValueText
+    );
+
+    expect(clipboardText).toBe("59.12346 18.98765");
+    expect(clipboardText?.includes("latitude")).toBe(false);
+    expect(clipboardText?.includes("longitude")).toBe(false);
+  });
+
+  it("returns null when formatted values are not available", () => {
+    const snapshot: ExportProjectionSnapshot = {
+      wkid: SWEREF_ZONES[0].wkid,
+      system: SWEREF_ZONES[0].system,
+      firstValue: Number.NaN,
+      secondValue: 0,
+      firstAxis: "easting",
+      secondAxis: "northing",
+    };
+    const precision = resolvePrecisionForOption(SWEREF_ZONES[0], 2);
+
+    expect(
+      formatSnapshotForClipboard(snapshot, precision, emptyValueText)
+    ).toBeNull();
   });
 });

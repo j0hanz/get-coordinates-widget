@@ -269,6 +269,33 @@ export const formatNumber = (
   }
 };
 
+export const formatSnapshotForClipboard = (
+  snapshot: ExportProjectionSnapshot,
+  precision: number,
+  _emptyValueText: string
+): string | null => {
+  const safePrecision = Math.max(0, Math.floor(precision));
+  const formatValue = (value: number): string | null => {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+    try {
+      return value.toFixed(safePrecision);
+    } catch {
+      return null;
+    }
+  };
+
+  const firstFormatted = formatValue(snapshot.firstValue);
+  const secondFormatted = formatValue(snapshot.secondValue);
+
+  if (!firstFormatted || !secondFormatted) {
+    return null;
+  }
+
+  return `${firstFormatted} ${secondFormatted}`;
+};
+
 const ensureProjectionLoaded = async (projection: __esri.projection) => {
   if (!projection || projection.isLoaded()) return;
   await projection.load();

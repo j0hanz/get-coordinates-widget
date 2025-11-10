@@ -39,6 +39,7 @@ import {
   copyTextToClipboard,
   createSpatialReferenceFactory,
   evaluateKoordinaterReadiness,
+  formatSnapshotForClipboard,
   hasCopyableText,
   projectPointToOption,
 } from "../shared/utils";
@@ -350,7 +351,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
           config.copyOnClick &&
           hasCopyableText(formatted, emptyValueText)
         ) {
-          copyValueToClipboard(formatted);
+          copyValueToClipboard();
         }
       } catch {
         /* ignore formatting errors */
@@ -380,8 +381,13 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   );
 
   // Shared clipboard helper for runtime copy feedback
-  const copyValueToClipboard = hooks.useEventCallback((value: string) => {
-    const copied = copyTextToClipboard(value);
+  const copyValueToClipboard = hooks.useEventCallback(() => {
+    const clipboardText = projection.formatClipboardText();
+    if (!clipboardText) {
+      showFeedbackMessage("clipboardUnavailable");
+      return;
+    }
+    const copied = copyTextToClipboard(clipboardText);
     showFeedbackMessage(copied ? "copied" : "clipboardUnavailable");
   });
 
@@ -397,7 +403,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   // Copy-on-click for the output area (extracted hook usage)
   const onOutputClick = hooks.useEventCallback(() => {
     if (!outputInteractive) return;
-    copyValueToClipboard(text);
+    copyValueToClipboard();
   });
 
   // Keyboard accessibility: Enter/Space triggers copy when enabled
@@ -405,7 +411,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
     if (!outputInteractive) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      copyValueToClipboard(text);
+      copyValueToClipboard();
     }
   });
 
@@ -555,4 +561,5 @@ export default KoordinaterWidget;
 export const projectionTestHelpers = {
   projectPointToOption,
   hasCopyableText,
+  formatSnapshotForClipboard,
 };

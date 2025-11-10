@@ -67,6 +67,7 @@ export interface ProjectionManager {
   getLastSnapshot: () => ExportProjectionSnapshot | null;
   hasSnapshot: () => boolean;
   clearSnapshot: () => void;
+  formatClipboardText: () => string | null;
 }
 
 export interface ExportManager {
