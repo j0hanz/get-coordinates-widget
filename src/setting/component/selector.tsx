@@ -4,10 +4,12 @@ import {
   SettingRow,
   SettingSection,
 } from "jimu-ui/advanced/setting-components";
-import { Button, Icon } from "jimu-ui";
+import { Button, SVG } from "jimu-ui";
 import { createStyleVariantSelectorStyles, StyleVariant } from "../../config";
 import type { StyleVariantSelectorProps } from "../../config";
 import defaultMessages from "../translations/default";
+import StyleCoordinateLinerIcon from "../../assets/style-coordinate-liner.svg";
+import StyleCoordinateIcon from "../../assets/style-coordinate.svg";
 
 const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
   const translate = hooks.useTranslation(defaultMessages);
@@ -50,11 +52,7 @@ const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
             aria-label={translate("styleVariantDefault")}
             aria-checked={isDefaultActive}
           >
-            <Icon
-              className="style-img"
-              css={styles.styleImg}
-              icon={require("../../assets/style-coordinate.svg")}
-            />
+            <SVG src={StyleCoordinateIcon} css={styles.styleImg} />
           </Button>
           <Button
             type="tertiary"
@@ -66,11 +64,7 @@ const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
             aria-label={translate("styleVariantLinear")}
             aria-checked={isLinearActive}
           >
-            <Icon
-              className="style-img"
-              css={styles.styleImg}
-              icon={require("../../assets/style-coordinate-liner.svg")}
-            />
+            <SVG src={StyleCoordinateLinerIcon} css={styles.styleImg} />
           </Button>
         </div>
       </SettingRow>
