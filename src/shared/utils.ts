@@ -78,6 +78,22 @@ export const resolveCheckedValue = (
   return !!event?.target?.checked;
 };
 
+export const resolveTranslation = (
+  translate: (key: string) => string,
+  key: string,
+  fallbackMessages: { [messageKey: string]: string }
+): string => {
+  const translated = translate(key);
+  if (translated && translated !== key) {
+    return translated;
+  }
+  const fallback = fallbackMessages[key];
+  if (typeof fallback === "string" && fallback.trim()) {
+    return fallback;
+  }
+  return key;
+};
+
 export const hasMethod = <K extends string>(
   value: unknown,
   methodName: K

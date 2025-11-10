@@ -22,7 +22,10 @@ import {
 } from "../config";
 import runtimeMessages from "../runtime/translations/default";
 import { projectionTestHelpers } from "../runtime/widget";
-import { formatSnapshotForClipboard } from "../shared/utils";
+import {
+  formatSnapshotForClipboard,
+  resolveTranslation,
+} from "../shared/utils";
 
 const createMockPoint = (x: number, y: number, wkid: number): __esri.Point => {
   const sr: __esri.SpatialReference = {
@@ -400,5 +403,33 @@ describe("formatSnapshotForClipboard", () => {
     expect(
       formatSnapshotForClipboard(snapshot, precision, emptyValueText)
     ).toBeNull();
+  });
+});
+
+describe("resolveTranslation", () => {
+  const fallbackMessages = runtimeMessages as {
+    [messageKey: string]: string;
+  };
+
+  it("returns provided translation when available", () => {
+    const translate = jest.fn((key: string) => fallbackMessages[key] ?? key);
+    expect(resolveTranslation(translate, "noValue", fallbackMessages)).toBe(
+      fallbackMessages.noValue
+    );
+    expect(translate).toHaveBeenCalledWith("noValue");
+  });
+
+  it("falls back to default message when translator returns key", () => {
+    const translate = jest.fn(() => "noValue");
+    expect(resolveTranslation(translate, "noValue", fallbackMessages)).toBe(
+      fallbackMessages.noValue
+    );
+  });
+
+  it("returns key when no fallback message exists", () => {
+    const translate = jest.fn(() => "missingKey");
+    expect(resolveTranslation(translate, "missingKey", fallbackMessages)).toBe(
+      "missingKey"
+    );
   });
 });

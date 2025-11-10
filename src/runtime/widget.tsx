@@ -44,6 +44,7 @@ import {
   formatSnapshotForClipboard,
   isValidClipboardText,
   projectPointToOption,
+  resolveTranslation,
 } from "../shared/utils";
 import defaultMessages from "./translations/default";
 import exportSvg from "../assets/export.svg";
@@ -71,8 +72,14 @@ function useStyles(variant: StyleVariant = StyleVariant.Default) {
 }
 
 const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
-  const translate = hooks.useTranslation(jimuUIMessages, defaultMessages);
-  const translateRef = hooks.useLatest(translate);
+  const rawTranslate = hooks.useTranslation(defaultMessages, jimuUIMessages);
+  const translateMessage = (key: string) =>
+    resolveTranslation(
+      rawTranslate,
+      key,
+      defaultMessages as { [messageKey: string]: string }
+    );
+  const translateRef = hooks.useLatest(translateMessage);
   const {
     message: feedbackMessage,
     show: showFeedbackMessage,
@@ -123,7 +130,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   );
 
   const styles = useStyles(styleVariant);
-  const noValueText = translate(NO_VALUE_MESSAGE_KEY);
+  const noValueText = translateMessage(NO_VALUE_MESSAGE_KEY);
   if (!noValueText) {
     throw new Error("Missing translation for 'noValue'");
   }
@@ -169,7 +176,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
     selectedWkidRef,
     viewRef,
     getSpatialReference,
-    translate,
+    translate: translateMessage,
   });
 
   // Export manager (serialization & download)
@@ -177,7 +184,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
     projection,
     configRef,
     allowedOptionsRef,
-    translate,
+    translate: translateMessage,
   });
 
   const readiness = evaluateKoordinaterReadiness({
@@ -187,10 +194,10 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   const shouldShowPinInstruction =
     config.enablePin && isPinned && !hasPinnedPoint;
   const instructionMessage = shouldShowPinInstruction
-    ? translate("clickMapToPlacePin")
+    ? translateMessage("clickMapToPlacePin")
     : null;
   const baseOutput = readiness.messageKey
-    ? translate(readiness.messageKey)
+    ? translateMessage(readiness.messageKey)
     : (instructionMessage ?? text);
   const renderedOutput = feedbackMessage ?? baseOutput;
   const canCopyCurrentText =
@@ -298,6 +305,17 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
       return formatted;
     }
   );
+
+  hooks.useUpdateEffect(() => {
+    if (!modules) {
+      return;
+    }
+    const lastPoint = projection.getLastPoint();
+    if (!lastPoint) {
+      return;
+    }
+    updateFromPoint(lastPoint).catch(() => undefined);
+  }, [modules, projection, updateFromPoint]);
 
   // Ensure any pending RAF is cancelled on unmount as a safety net
   hooks.useUnmount(() => {
@@ -434,8 +452,10 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
             icon
             css={styles.pinButton}
             aria-pressed={isPinned}
-            aria-label={translate(isPinned ? "pinToggleOff" : "pinToggleOn")}
-            title={translate(isPinned ? "pinToggleOff" : "pinToggleOn")}
+            aria-label={translateMessage(
+              isPinned ? "pinToggleOff" : "pinToggleOn"
+            )}
+            title={translateMessage(isPinned ? "pinToggleOff" : "pinToggleOn")}
             onClick={onPinToggle}
             disabled={!jmv}
           >
@@ -459,7 +479,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
           onMouseLeave={handleOutputMouseLeave}
           role={outputInteractive ? "button" : undefined}
           tabIndex={outputInteractive ? 0 : undefined}
-          aria-label={outputInteractive ? translate("copy") : undefined}
+          aria-label={outputInteractive ? translateMessage("copy") : undefined}
           title={renderedOutput}
           data-can-copy={outputInteractive ? "true" : "false"}
         >
@@ -482,14 +502,14 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
             <Dropdown
               activeIcon
               menuRole="listbox"
-              aria-label={translate("export")}
+              aria-label={translateMessage("export")}
             >
               <DropdownButton
                 arrow={false}
                 icon
                 type="tertiary"
                 css={styles.pinButton}
-                title={translate("export")}
+                title={translateMessage("export")}
                 role="combobox"
                 disabled={
                   readiness.status !== "ready" || !exportManager.isReady()
@@ -505,9 +525,9 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
                       exportManager.handleExportSelect(item.key);
                     }}
                     role="menuitem"
-                    title={translate(item.messageKey)}
+                    title={translateMessage(item.messageKey)}
                   >
-                    {translate(item.messageKey)}
+                    {translateMessage(item.messageKey)}
                   </DropdownItem>
                 ))}
               </DropdownMenu>
@@ -518,14 +538,14 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
             <Dropdown
               activeIcon
               menuRole="listbox"
-              aria-label={translate("format")}
+              aria-label={translateMessage("format")}
             >
               <DropdownButton
                 arrow={false}
                 icon
                 type="tertiary"
                 css={styles.pinButton}
-                title={translate("format")}
+                title={translateMessage("format")}
                 role="combobox"
                 disabled={allowedOptions.length === 0}
               >
@@ -535,7 +555,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
                 {allowedOptions.map((option) => {
                   const displayLabel = formatCoordinateOptionLabel(
                     option,
-                    translate
+                    translateMessage
                   );
                   const isActive = option.wkid === selectedWkid;
                   return (
