@@ -293,7 +293,7 @@ export const formatSnapshotForClipboard = (
     return null;
   }
 
-  return `${firstFormatted} ${secondFormatted}`;
+  return `${firstFormatted},${secondFormatted}`;
 };
 
 const ensureProjectionLoaded = async (projection: __esri.projection) => {

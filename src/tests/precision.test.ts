@@ -302,7 +302,7 @@ describe("formatSnapshotForClipboard", () => {
       emptyValueText
     );
 
-    expect(clipboardText).toBe("658742.13 6581234.98");
+    expect(clipboardText).toBe("658742.13,6581234.98");
     expect(clipboardText?.includes("easting")).toBe(false);
     expect(clipboardText?.includes("northing")).toBe(false);
   });
@@ -323,7 +323,7 @@ describe("formatSnapshotForClipboard", () => {
       emptyValueText
     );
 
-    expect(clipboardText).toBe("59.12346 18.98765");
+    expect(clipboardText).toBe("59.12346,18.98765");
     expect(clipboardText?.includes("latitude")).toBe(false);
     expect(clipboardText?.includes("longitude")).toBe(false);
   });
