@@ -190,17 +190,17 @@ export const createSettingStyles = () => {
 export const createStyleVariantSelectorStyles = () => {
   return {
     container: css({
+      display: "flex",
       width: "100%",
+      gap: 12,
     }),
     button: css({
-      widows: 104,
+      flex: "1 1 auto",
+      minWidth: 104,
       height: 80,
       padding: 0,
       margin: 0,
       background: "#181818",
-      "&:not(:first-of-type)": {
-        marginTop: 12,
-      },
     }),
     buttonActive: css({
       "& .style-img": {
