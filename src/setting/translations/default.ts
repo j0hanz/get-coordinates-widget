@@ -23,4 +23,7 @@ export default {
   pinIconDropMarker: "Drop marker",
   pinIconBeaconPin: "Beacon pin",
   pinIconRingPin: "Ring marker",
+  settingStyleVariant: "Style variant",
+  styleVariantDefault: "Default",
+  styleVariantLinear: "Linear",
 };

@@ -26,6 +26,7 @@ import {
   ConfigValidators,
   DEFAULT_PIN_FILL_COLOR,
   DEFAULT_PIN_ICON_ID,
+  DEFAULT_STYLE_VARIANT,
   ensureValidWkid,
   formatCoordinateOptionLabel,
   getCoordinateOptionsForScope,
@@ -39,6 +40,7 @@ import type {
   MultiSelectValue,
   PinIconDefinition,
   PinIconId,
+  StyleVariant,
 } from "../config";
 import { createSettingStyles } from "../config/style";
 import {
@@ -47,6 +49,7 @@ import {
   parseIntOrNull,
   resolveCheckedValue,
 } from "../shared/utils";
+import StyleVariantSelector from "./component/selector";
 import defaultMessages from "./translations/default";
 
 const { restrictEnabledWkids } = ConfigValidators;
@@ -70,21 +73,14 @@ const logSettingsEvent = (
   event: string,
   details: { [key: string]: unknown }
 ) => {
-  if (typeof console === "undefined") {
+  if (typeof console === "undefined" || typeof console.debug !== "function") {
     return;
   }
-  if (typeof console.debug === "function") {
-    console.debug("[Koordinater][Settings]", event, details);
-    return;
-  }
-  if (typeof console.info === "function") {
-    console.info("[Koordinater][Settings]", event, details);
-  }
+  console.debug(`[get-coordinates:settings:${event}]`, details);
 };
 
-const updateEnabledWkidsSnapshot = (values: Array<string | number>): string => {
-  return values.map(String).sort().join("|");
-};
+const updateEnabledWkidsSnapshot = (values: Array<string | number>): string =>
+  values.map(String).sort().join("|");
 
 const validateAndUpdateWkid = (
   currentWkid: number,
@@ -182,6 +178,9 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
   const [localPinIconId, setLocalPinIconId] = React.useState<PinIconId>(
     () => sanitizedConfig.pinIconId || DEFAULT_PIN_ICON_ID
   );
+  const [styleVariant, setStyleVariant] = React.useState<StyleVariant>(
+    () => sanitizedConfig.styleVariant ?? DEFAULT_STYLE_VARIANT
+  );
 
   const pinIconDefinitions = listPinIconDefinitions();
   const pinIconIdRef = hooks.useLatest(localPinIconId);
@@ -234,6 +233,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
       sanitizedConfig.pinFillColor || DEFAULT_PIN_FILL_COLOR
     );
     setLocalPinIconId(sanitizedConfig.pinIconId || DEFAULT_PIN_ICON_ID);
+    setStyleVariant(sanitizedConfig.styleVariant ?? DEFAULT_STYLE_VARIANT);
   }, [sanitizedConfig]);
 
   const commitPartial = hooks.useEventCallback(
@@ -254,6 +254,17 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
   const onMapChange = hooks.useEventCallback((ids: string[]) => {
     props.onSettingChange({ id: props.id, useMapWidgetIds: ids });
   });
+
+  const onStyleVariantSettingChange = hooks.useEventCallback(
+    (change: Parameters<typeof props.onSettingChange>[0]) => {
+      const nextVariant = (change.config as IMKoordinaterConfig | undefined)
+        ?.styleVariant;
+      if (nextVariant) {
+        setStyleVariant(nextVariant);
+      }
+      props.onSettingChange(change);
+    }
+  );
 
   const applyEnabledWkidsChange = hooks.useEventCallback(
     (
@@ -581,6 +592,12 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
               </SettingRow>
             </SettingSection>
           )}
+          <StyleVariantSelector
+            id={props.id}
+            onSettingChange={onStyleVariantSettingChange}
+            config={props.config}
+            currentVariant={styleVariant}
+          />
         </>
       )}
     </>

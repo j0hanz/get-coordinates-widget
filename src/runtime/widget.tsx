@@ -16,6 +16,7 @@ import copyIcon from "jimu-icons/svg/outlined/editor/copy.svg";
 import {
   computeAllowedZones,
   type CoordinateOption,
+  DEFAULT_STYLE_VARIANT,
   EXPORT_FORMATS,
   formatCoordinateOptionLabel,
   type GraphicsLayerCtor,
@@ -23,6 +24,7 @@ import {
   type KoordinaterWidgetProps,
   type NativeEventWithStop,
   NO_VALUE_MESSAGE_KEY,
+  StyleVariant,
   type ThemeLike,
 } from "../config";
 import { createWidgetStyles } from "../config/style";
@@ -53,15 +55,17 @@ if (!defaultNoValueText) {
   throw new Error(`Missing default translation for '${NO_VALUE_MESSAGE_KEY}'`);
 }
 
-function useStyles() {
+function useStyles(variant: StyleVariant = StyleVariant.Default) {
   const theme = useTheme();
   const stylesRef = React.useRef(null);
   const themeRef = React.useRef<ThemeLike | null>(null);
+  const variantRef = React.useRef(variant);
   let styles = stylesRef.current;
-  if (!styles || themeRef.current !== theme) {
-    styles = createWidgetStyles(theme);
+  if (!styles || themeRef.current !== theme || variantRef.current !== variant) {
+    styles = createWidgetStyles(theme, variant);
     stylesRef.current = styles;
     themeRef.current = theme;
+    variantRef.current = variant;
   }
   return styles;
 }
@@ -77,6 +81,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   } = useFeedbackController(translateRef);
 
   const { config } = useConfigState(props.config);
+  const styleVariant = config.styleVariant ?? DEFAULT_STYLE_VARIANT;
   const configRef = hooks.useLatest(config);
 
   const [jmv, setJmv] = React.useState<JimuMapView | null>(null);
@@ -117,7 +122,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
     })
   );
 
-  const styles = useStyles();
+  const styles = useStyles(styleVariant);
   const noValueText = translate(NO_VALUE_MESSAGE_KEY);
   if (!noValueText) {
     throw new Error("Missing translation for 'noValue'");

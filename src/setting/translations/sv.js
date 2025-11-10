@@ -26,6 +26,9 @@ System.register([], function (e) {
         pinIconDropMarker: "Droppformad markör",
         pinIconBeaconPin: "Fyrsymbol",
         pinIconRingPin: "Ringformad markör",
+        settingStyleVariant: "Stilvariant",
+        styleVariantDefault: "Standard",
+        styleVariantLinear: "Linjär",
       });
     },
   };

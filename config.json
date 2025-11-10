@@ -10,5 +10,6 @@
     3018, 4619
   ],
   "pinFillColor": "#000000",
-  "pinIconId": "classicPin"
+  "pinIconId": "classicPin",
+  "styleVariant": "default"
 }

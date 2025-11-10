@@ -4,6 +4,8 @@ import type {
   IMThemeVariables,
   ThemeVariables,
 } from "jimu-core";
+import type { SettingChangeFunction } from "jimu-for-builder";
+import type { StyleVariant } from "./enums";
 
 export type CoordinateSystemId =
   | "sweref99"
@@ -41,6 +43,7 @@ export interface KoordinaterConfig {
   enabledWkids: number[];
   pinFillColor: string;
   pinIconId: PinIconId;
+  styleVariant?: StyleVariant;
 }
 
 export type IMKoordinaterConfig = ImmutableObject<KoordinaterConfig>;
@@ -156,6 +159,13 @@ export interface ConfigSetter extends IMKoordinaterConfig {
     key: K,
     value: KoordinaterConfig[K]
   ) => IMKoordinaterConfig;
+}
+
+export interface StyleVariantSelectorProps {
+  id: string;
+  onSettingChange: SettingChangeFunction;
+  config: IMKoordinaterConfig;
+  currentVariant: StyleVariant;
 }
 
 export interface ImmutableArrayLike<T> {

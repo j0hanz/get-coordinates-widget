@@ -1,4 +1,5 @@
 import { clamp, readConfigValue, toArray, toNumber } from "../shared/utils";
+import { StyleVariant } from "./enums";
 import type {
   AxisMessageKey,
   CoordinateOption,
@@ -33,6 +34,8 @@ export const PRECISION_LIMITS: Readonly<{ min: number; max: number }> =
     min: 0,
     max: 6,
   });
+
+export const DEFAULT_STYLE_VARIANT = StyleVariant.Default;
 
 export const LAT_LONG_AXIS_KEYS = new Set<AxisMessageKey>([
   "latitude",
@@ -744,6 +747,7 @@ export const defaultConfig: KoordinaterConfig = Object.freeze({
   enabledWkids: Array.from(DEFAULT_SWEREF_WKIDS),
   pinFillColor: DEFAULT_PIN_FILL_COLOR,
   pinIconId: DEFAULT_PIN_ICON_ID,
+  styleVariant: DEFAULT_STYLE_VARIANT,
 });
 
 const coerceEnabledWkids = (
@@ -772,6 +776,7 @@ export const buildConfig = (partial: unknown): KoordinaterConfig => {
     enabledWkids: Array.from(defaultConfig.enabledWkids),
     pinFillColor: defaultConfig.pinFillColor,
     pinIconId: defaultConfig.pinIconId,
+    styleVariant: defaultConfig.styleVariant ?? DEFAULT_STYLE_VARIANT,
   };
 
   const includeExtended = ConfigCoercers.boolean(
@@ -821,6 +826,16 @@ export const buildConfig = (partial: unknown): KoordinaterConfig => {
     readKoordinaterConfigValue(partial, "pinIconId")
   );
 
+  const styleVariantCandidate = readKoordinaterConfigValue(
+    partial,
+    "styleVariant"
+  );
+  const styleVariant =
+    styleVariantCandidate === StyleVariant.Linear ||
+    styleVariantCandidate === StyleVariant.Default
+      ? (styleVariantCandidate as StyleVariant)
+      : (base.styleVariant ?? DEFAULT_STYLE_VARIANT);
+
   return {
     swerefWkid: resolvedWkid,
     precision,
@@ -831,6 +846,7 @@ export const buildConfig = (partial: unknown): KoordinaterConfig => {
     enabledWkids,
     pinFillColor,
     pinIconId,
+    styleVariant,
   };
 };
 
