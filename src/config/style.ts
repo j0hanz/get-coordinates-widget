@@ -75,3 +75,42 @@ export const createWidgetStyles = (theme: ThemeLike) => {
     }),
   };
 };
+
+export const createSettingStyles = () => {
+  return {
+    fullWidth: css({
+      display: "flex",
+      width: "100%",
+      flexDirection: "column",
+      minWidth: 0,
+    }),
+    helperStyle: css({
+      marginTop: 4,
+      opacity: 0.7,
+    }),
+    iconGroupStyle: css({
+      display: "flex",
+      width: "100%",
+      flexWrap: "nowrap",
+      gap: 8,
+      justifyContent: "space-between",
+      "& > button": {
+        flex: "0 0 44px",
+        height: 42,
+        padding: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      },
+    }),
+    iconSvgStyle: css({
+      width: 28,
+      height: 28,
+      pointerEvents: "none",
+    }),
+    inlineMessageStyle: css({
+      marginTop: 8,
+      opacity: 0.75,
+    }),
+  };
+};

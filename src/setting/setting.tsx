@@ -1,6 +1,6 @@
 /** @jsx jsx */
 /** @jsxFrag React.Fragment */
-import { css, hooks, jsx, React } from "jimu-core";
+import { hooks, jsx, React } from "jimu-core";
 import {
   MapWidgetSelector,
   SettingRow,
@@ -40,6 +40,7 @@ import type {
   PinIconDefinition,
   PinIconId,
 } from "../config";
+import { createSettingStyles } from "../config/style";
 import {
   evaluateKoordinaterReadiness,
   materializeValueArray,
@@ -48,51 +49,22 @@ import {
 } from "../shared/utils";
 import defaultMessages from "./translations/default";
 
-const fullWidth = css({
-  display: "flex",
-  width: "100%",
-  flexDirection: "column",
-  minWidth: 0,
-});
-
-const helperStyle = css({
-  marginTop: 4,
-  opacity: 0.7,
-});
-
-const iconGroupStyle = css({
-  display: "flex",
-  width: "100%",
-  flexWrap: "nowrap",
-  gap: 8,
-  justifyContent: "space-between",
-  "& > button": {
-    flex: "0 0 44px",
-    height: 42,
-    padding: 0,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
-
-const iconSvgStyle = css({
-  width: 28,
-  height: 28,
-  pointerEvents: "none",
-});
-
-const inlineMessageStyle = css({
-  marginTop: 8,
-  opacity: 0.75,
-});
-
 const { restrictEnabledWkids } = ConfigValidators;
 const {
   precision: sanitizePrecision,
   hexColor: sanitizeHexColor,
   pinIconId: sanitizePinIconId,
 } = ConfigSanitizers;
+
+function useSettingStyles() {
+  const stylesRef = React.useRef(null);
+  let styles = stylesRef.current;
+  if (!styles) {
+    styles = createSettingStyles();
+    stylesRef.current = styles;
+  }
+  return styles;
+}
 
 const logSettingsEvent = (
   event: string,
@@ -134,7 +106,8 @@ const ColorPicker: React.FC<{
   onChange?: (color: string) => void;
   style?: React.CSSProperties;
   "aria-label"?: string;
-}> = ({ value, defaultValue, onChange, "aria-label": ariaLabel }) => {
+  styles: ReturnType<typeof createSettingStyles>;
+}> = ({ value, defaultValue, onChange, "aria-label": ariaLabel, styles }) => {
   return (
     <JimuColorPicker
       color={value || defaultValue || "#000000"}
@@ -142,7 +115,7 @@ const ColorPicker: React.FC<{
         onChange?.(color);
       }}
       aria-label={ariaLabel}
-      css={fullWidth}
+      css={styles.fullWidth}
     />
   );
 };
@@ -150,7 +123,8 @@ const ColorPicker: React.FC<{
 const PinIconPreview: React.FC<{
   definition: PinIconDefinition;
   color: string;
-}> = ({ definition, color }) => {
+  styles: ReturnType<typeof createSettingStyles>;
+}> = ({ definition, color, styles }) => {
   const resolvedColor = sanitizeHexColor(color, DEFAULT_PIN_FILL_COLOR);
   const dataSrc =
     buildPinSymbolDataUrl(definition, resolvedColor) ??
@@ -161,7 +135,7 @@ const PinIconPreview: React.FC<{
       role="img"
       aria-hidden="true"
       focusable="false"
-      css={iconSvgStyle}
+      css={styles.iconSvgStyle}
       currentColor={false}
     />
   );
@@ -171,6 +145,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
   props
 ) => {
   useTheme();
+  const styles = useSettingStyles();
   const translate = hooks.useTranslation(jimuUIMessages, defaultMessages);
   const cfg = props.config;
   const sanitizedConfig = buildConfig(cfg);
@@ -427,7 +402,11 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
         </SettingRow>
         {!mapSelected && mapStatusMessage && (
           <SettingRow level={1} label="" flow="wrap">
-            <div css={inlineMessageStyle} role="status" aria-live="polite">
+            <div
+              css={styles.inlineMessageStyle}
+              role="status"
+              aria-live="polite"
+            >
               {mapStatusMessage}
             </div>
           </SettingRow>
@@ -458,7 +437,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
               onClickItem={onEnabledWkidsItemClick}
               placeholder={translate("availableOutputs")}
               items={coordinateItems}
-              css={fullWidth}
+              css={styles.fullWidth}
             >
               {coordinateItems.map((item) => (
                 <MultiSelectItem
@@ -471,7 +450,11 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
           </SettingRow>
           {!formatsSelected && formatsStatusMessage && (
             <SettingRow level={1} label="" flow="wrap">
-              <div css={inlineMessageStyle} role="status" aria-live="polite">
+              <div
+                css={styles.inlineMessageStyle}
+                role="status"
+                aria-live="polite"
+              >
                 {formatsStatusMessage}
               </div>
             </SettingRow>
@@ -506,9 +489,9 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
                 min={PRECISION_LIMITS.min}
                 max={PRECISION_LIMITS.max}
                 aria-label={translate("precision")}
-                css={fullWidth}
+                css={styles.fullWidth}
               />
-              <div css={helperStyle}>{translate("precisionHelper")}</div>
+              <div css={styles.helperStyle}>{translate("precisionHelper")}</div>
             </SettingRow>
           </SettingSection>
           <SettingSection>
@@ -563,6 +546,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
                   value={localPinFillColor}
                   onChange={onPinFillColorChange}
                   aria-label={translate("pinColor")}
+                  styles={styles}
                 />
               </SettingRow>
               <SettingRow
@@ -571,7 +555,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
                 tag="label"
                 flow="wrap"
               >
-                <AdvancedButtonGroup css={iconGroupStyle} size="sm">
+                <AdvancedButtonGroup css={styles.iconGroupStyle} size="sm">
                   {pinIconDefinitions.map((definition) => {
                     const label = translate(definition.labelMessageKey);
                     const isActive = localPinIconId === definition.id;
@@ -588,6 +572,7 @@ const Setting: React.FC<AllWidgetSettingProps<IMKoordinaterConfig>> = (
                         <PinIconPreview
                           definition={definition}
                           color={localPinFillColor}
+                          styles={styles}
                         />
                       </Button>
                     );
