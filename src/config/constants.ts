@@ -37,6 +37,10 @@ export const PRECISION_LIMITS: Readonly<{ min: number; max: number }> =
 
 export const DEFAULT_STYLE_VARIANT = StyleVariant.Default;
 
+export const WIDGET_STARTUP_DELAY_MS = 1500;
+
+export const MIN_SPINNER_DISPLAY_MS = 500;
+
 export const LAT_LONG_AXIS_KEYS = new Set<AxisMessageKey>([
   "latitude",
   "longitude",

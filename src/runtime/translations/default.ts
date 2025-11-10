@@ -12,6 +12,8 @@ export default {
   precision: "Number of decimals",
   copy: "Copy",
   copied: "Copied",
+  loadingModules: "Loading map services",
+  moduleLoadFailed: "Unable to load ArcGIS resources",
   systemLabelSweref99: "SWEREF 99",
   systemLabelRt90: "RT 90",
   systemLabelWgs84: "WGS 84",

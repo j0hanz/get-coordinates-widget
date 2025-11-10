@@ -15,6 +15,8 @@ System.register([], function (e) {
         precision: "Antal decimaler",
         copy: "Kopiera",
         copied: "Kopierat",
+        loadingModules: "Laddar karttjänster",
+        moduleLoadFailed: "Det gick inte att ladda ArcGIS-resurser",
         systemLabelSweref99: "SWEREF 99",
         systemLabelRt90: "RT 90",
         systemLabelWgs84: "WGS 84",

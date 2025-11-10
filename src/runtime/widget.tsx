@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { hooks, jsx, React } from "jimu-core";
+import { css, hooks, jsx, React } from "jimu-core";
 import { type JimuMapView, JimuMapViewComponent } from "jimu-arcgis";
 import {
   Button,
@@ -8,6 +8,8 @@ import {
   DropdownItem,
   DropdownMenu,
   defaultMessages as jimuUIMessages,
+  Loading,
+  LoadingType,
   SVG,
 } from "jimu-ui";
 import { useTheme } from "jimu-theme";
@@ -22,10 +24,12 @@ import {
   type GraphicsLayerCtor,
   type KoordinaterModules,
   type KoordinaterWidgetProps,
+  MIN_SPINNER_DISPLAY_MS,
   type NativeEventWithStop,
   NO_VALUE_MESSAGE_KEY,
   StyleVariant,
   type ThemeLike,
+  WIDGET_STARTUP_DELAY_MS,
 } from "../config";
 import { createWidgetStyles } from "../config/style";
 import {
@@ -36,6 +40,7 @@ import {
   usePinGraphicManager,
   usePointerSubscriptions,
   useProjectionManager,
+  useWidgetStartup,
 } from "../shared/hooks";
 import {
   buildSpatialReferenceGetter,
@@ -50,6 +55,31 @@ import defaultMessages from "./translations/default";
 import exportSvg from "../assets/export.svg";
 import pinOffSvg from "../assets/pin-off.svg";
 import pinSvg from "../assets/pin.svg";
+
+const statusContainerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  gap: 8,
+  minHeight: 33,
+  padding: "0 12px",
+});
+
+const statusMessageStyle = css({
+  fontSize: 13,
+  lineHeight: 1.4,
+});
+
+const statusIconStyle = css({
+  width: 20,
+  height: 20,
+});
+
+const statusSpinnerStyle = css({
+  width: 24,
+  height: 24,
+});
 
 const defaultNoValueText = defaultMessages[NO_VALUE_MESSAGE_KEY];
 if (!defaultNoValueText) {
@@ -99,7 +129,11 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   const [isPinned, setIsPinned] = React.useState<boolean>(false);
   const [hasPinnedPoint, setHasPinnedPoint] = React.useState<boolean>(false);
 
-  const modules = useArcGisModuleLoader<
+  const {
+    value: modules,
+    loading: modulesLoading,
+    error: modulesError,
+  } = useArcGisModuleLoader<
     KoordinaterModules & { GraphicsLayer?: GraphicsLayerCtor }
   >(
     [
@@ -128,6 +162,12 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
       GraphicsLayer: GraphicsLayerCtor as GraphicsLayerCtor,
     })
   );
+
+  const { shouldShowLoading } = useWidgetStartup({
+    modulesLoading,
+    startupDelay: WIDGET_STARTUP_DELAY_MS,
+    minSpinnerDisplay: MIN_SPINNER_DISPLAY_MS,
+  });
 
   const styles = useStyles(styleVariant);
   const noValueText = translateMessage(NO_VALUE_MESSAGE_KEY);
@@ -438,6 +478,43 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
   );
 
   const pinIconSrc = isPinned ? pinOffSvg : pinSvg;
+
+  if (shouldShowLoading) {
+    return (
+      <div css={styles.container}>
+        <div
+          css={statusContainerStyle}
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <Loading
+            css={statusSpinnerStyle}
+            type={LoadingType.Donut}
+            width={24}
+            height={24}
+            aria-label={translateMessage("loadingModules")}
+          />
+          <div css={statusMessageStyle}>
+            {translateMessage("loadingModules")}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (modulesError) {
+    return (
+      <div css={styles.container}>
+        <div css={statusContainerStyle} role="alert" aria-live="assertive">
+          <SVG src={pinOffSvg} css={statusIconStyle} role="presentation" />
+          <div css={statusMessageStyle}>
+            {translateMessage("moduleLoadFailed")}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div css={styles.container}>

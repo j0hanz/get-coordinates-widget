@@ -56,6 +56,37 @@ export const useStagedState = <T>(initialValue: T | (() => T)) => {
   return [value, setValue] as const;
 };
 
+export const useDebouncedValue = <T>(value: T, delay: number): T => {
+  const safeDelay = Number.isFinite(delay) && delay >= 0 ? delay : 0;
+  const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
+  const mountedRef = React.useRef(true);
+
+  hooks.useUpdateEffect(() => {
+    if (safeDelay === 0) {
+      setDebouncedValue(value);
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (mountedRef.current) {
+        setDebouncedValue(value);
+      }
+    }, safeDelay);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [value, safeDelay]);
+
+  hooks.useEffectOnce(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  });
+
+  return debouncedValue;
+};
+
 export const useFeedbackController = (
   translateRef: React.MutableRefObject<(id: string) => string>
 ) => {
@@ -199,22 +230,55 @@ export const useArcGisModuleLoader = <T>(
   mapResult: (...loaded: unknown[]) => T
 ) => {
   const [value, setValue] = React.useState<T | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<Error | null>(null);
+  const mountedRef = React.useRef(true);
   const makeCancelable = hooks.useCancelablePromiseMaker();
   hooks.useEffectOnce(() => {
     const cancellable = makeCancelable(loadArcGISJSAPIModules(moduleNames));
     cancellable
       .then((loaded) => {
         try {
-          setValue(mapResult(...loaded));
-        } catch {
+          const mapped = mapResult(...loaded);
+          if (!mountedRef.current) {
+            return;
+          }
+          setValue(mapped);
+          setError(null);
+        } catch (err) {
+          if (!mountedRef.current) {
+            return;
+          }
           setValue(null);
+          setError(err instanceof Error ? err : new Error(String(err)));
         }
       })
-      .catch(() => {
-        /* swallow load failures */
+      .catch((err) => {
+        if (!mountedRef.current) {
+          return;
+        }
+        if (err?.name === "AbortError") {
+          return;
+        }
+        setError(err instanceof Error ? err : new Error(String(err)));
+      })
+      .finally(() => {
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       });
+
+    return () => {
+      mountedRef.current = false;
+      const cancelable = cancellable as unknown as {
+        cancel?: () => void;
+      };
+      if (typeof cancelable?.cancel === "function") {
+        cancelable.cancel();
+      }
+    };
   });
-  return value;
+  return { value, loading, error } as const;
 };
 
 const createPinSymbol = (
@@ -644,4 +708,71 @@ export const useExportManager = (
     handleExportSelect,
     isReady,
   };
+};
+
+export const useWidgetStartup = (params: {
+  modulesLoading: boolean;
+  startupDelay: number;
+  minSpinnerDisplay: number;
+}) => {
+  const { modulesLoading, startupDelay, minSpinnerDisplay } = params;
+
+  const [isInitializing, setIsInitializing] = React.useState(true);
+  const [spinnerVisible, setSpinnerVisible] = React.useState(false);
+  const spinnerStartTimeRef = React.useRef<number | null>(null);
+  const mountedRef = React.useRef(true);
+
+  const debouncedLoading = useDebouncedValue(modulesLoading, startupDelay);
+
+  hooks.useUpdateEffect(() => {
+    if (debouncedLoading && !spinnerVisible) {
+      setSpinnerVisible(true);
+      try {
+        spinnerStartTimeRef.current = performance.now();
+      } catch {
+        spinnerStartTimeRef.current = null;
+      }
+    }
+  }, [debouncedLoading, spinnerVisible]);
+
+  hooks.useUpdateEffect(() => {
+    if (!modulesLoading && spinnerVisible) {
+      const startTime = spinnerStartTimeRef.current;
+      const elapsed =
+        startTime != null ? performance.now() - startTime : minSpinnerDisplay;
+
+      if (elapsed >= minSpinnerDisplay) {
+        setSpinnerVisible(false);
+        setIsInitializing(false);
+      } else {
+        const remaining = minSpinnerDisplay - elapsed;
+        const timerId = window.setTimeout(() => {
+          if (mountedRef.current) {
+            setSpinnerVisible(false);
+            setIsInitializing(false);
+          }
+        }, remaining);
+
+        return () => {
+          window.clearTimeout(timerId);
+        };
+      }
+    } else if (!modulesLoading && !spinnerVisible) {
+      setIsInitializing(false);
+    }
+
+    return undefined;
+  }, [modulesLoading, spinnerVisible, minSpinnerDisplay]);
+
+  hooks.useEffectOnce(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  });
+
+  return {
+    shouldShowLoading: spinnerVisible,
+    isInitializing,
+    modulesReady: !modulesLoading && !isInitializing,
+  } as const;
 };
