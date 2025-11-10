@@ -8,8 +8,8 @@ import { Button, SVG } from "jimu-ui";
 import { createStyleVariantSelectorStyles, StyleVariant } from "../../config";
 import type { StyleVariantSelectorProps } from "../../config";
 import defaultMessages from "../translations/default";
-import StyleCoordinateLinerIcon from "../../assets/style-coordinate-liner.svg";
 import StyleCoordinateIcon from "../../assets/style-coordinate.svg";
+import StyleCoordinateLinerIcon from "../../assets/style-coordinate-liner.svg";
 
 const StyleVariantSelector = (props: StyleVariantSelectorProps) => {
   const translate = hooks.useTranslation(defaultMessages);
