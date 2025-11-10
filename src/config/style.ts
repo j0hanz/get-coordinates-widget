@@ -196,19 +196,16 @@ export const createStyleVariantSelectorStyles = () => {
     }),
     button: css({
       flex: "1 1 auto",
-      minWidth: 104,
-      height: 80,
+      height: 40,
       padding: 0,
       margin: 0,
       background: "#181818",
+      border: "2px solid transparent",
     }),
     buttonActive: css({
-      "& .style-img": {
-        border: "2px solid var(--sys-color-primary-light)",
-      },
+      border: "2px solid var(--sys-color-primary-light)",
     }),
     styleImg: css({
-      border: "2px solid transparent",
       height: 36,
       margin: 0,
       width: "100%",
