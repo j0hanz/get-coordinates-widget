@@ -30,6 +30,8 @@ import {
   StyleVariant,
   type ThemeLike,
   WIDGET_STARTUP_DELAY_MS,
+  type WidgetStatusProps,
+  type WidgetStyles,
 } from "../config";
 import { createWidgetStyles } from "../config/style";
 import {
@@ -85,17 +87,6 @@ const defaultNoValueText = defaultMessages[NO_VALUE_MESSAGE_KEY];
 if (!defaultNoValueText) {
   throw new Error(`Missing default translation for '${NO_VALUE_MESSAGE_KEY}'`);
 }
-
-type WidgetStyles = ReturnType<typeof createWidgetStyles>;
-
-type WidgetStatusProps = {
-  containerCss: WidgetStyles["container"];
-  leading: React.ReactNode;
-  message: string;
-  ariaLive: "polite" | "assertive";
-  role?: "status" | "alert";
-  ariaBusy?: boolean;
-};
 
 const WidgetStatus: React.FC<WidgetStatusProps> = ({
   containerCss,

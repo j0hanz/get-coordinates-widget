@@ -6,6 +6,7 @@ import type {
 } from "jimu-core";
 import type { SettingChangeFunction } from "jimu-for-builder";
 import type { StyleVariant } from "./enums";
+import type { createWidgetStyles } from "./style";
 
 export type CoordinateSystemId =
   | "sweref99"
@@ -242,4 +243,15 @@ export interface ThemeRecord {
     color?: ThemeColors;
     spacing?: (value: number) => number | string;
   };
+}
+
+export type WidgetStyles = ReturnType<typeof createWidgetStyles>;
+
+export interface WidgetStatusProps {
+  containerCss: WidgetStyles["container"];
+  leading: React.ReactNode;
+  message: string;
+  ariaLive: "polite" | "assertive";
+  role?: "status" | "alert";
+  ariaBusy?: boolean;
 }

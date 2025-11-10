@@ -122,18 +122,22 @@ const PinIconPreview: React.FC<{
   styles: ReturnType<typeof createSettingStyles>;
 }> = ({ definition, color, styles }) => {
   const resolvedColor = sanitizeHexColor(color, DEFAULT_PIN_FILL_COLOR);
-  const dataSrc = React.useMemo(() => {
-    const prebuilt = buildPinSymbolDataUrl(definition, resolvedColor);
-    if (prebuilt) return prebuilt;
+  const prebuilt = buildPinSymbolDataUrl(definition, resolvedColor);
+  let dataSrc: string;
 
+  if (prebuilt) {
+    dataSrc = prebuilt;
+  } else {
     try {
-      return `data:image/svg+xml;utf8,${encodeURIComponent(
+      dataSrc = `data:image/svg+xml;utf8,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${definition.viewBox}">${definition.svgBody.replace(/{{color}}/g, resolvedColor)}</svg>`
       )}`;
     } catch {
-      return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"/>';
+      dataSrc =
+        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"/>';
     }
-  }, [definition, resolvedColor]);
+  }
+
   return (
     <SVG
       src={dataSrc}
