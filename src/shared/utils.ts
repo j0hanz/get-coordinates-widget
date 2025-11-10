@@ -75,7 +75,7 @@ export const copyTextToClipboard = (
   if (!value) return false;
   try {
     return copy(value, { format: "text/plain" });
-  } catch {
+  } catch (error: unknown) {
     return false;
   }
 };
@@ -90,7 +90,9 @@ export const resolveCheckedValue = (
   return !!event?.target?.checked;
 };
 
-const hasToArray = <T>(value: unknown): value is ImmutableArrayLike<T> => {
+const hasToArray = <T = string | number>(
+  value: unknown
+): value is ImmutableArrayLike<T> => {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -107,7 +109,7 @@ export const materializeValueArray = (
   if (Array.isArray(source)) {
     return [...source];
   }
-  if (hasToArray<string | number>(source)) {
+  if (hasToArray(source)) {
     return source.toArray();
   }
   return [];
@@ -121,31 +123,48 @@ export const hasCopyableText = (
 export const isWebMercatorWkid = (wkid?: number): boolean =>
   wkid === 102100 || wkid === 3857 || wkid === 102113;
 
+const hasClone = (
+  point: __esri.Point
+): point is __esri.Point & { clone: () => __esri.Point } => {
+  return (
+    typeof (point as __esri.Point & { clone?: unknown }).clone === "function"
+  );
+};
+
 export const clonePoint = (
   modules: KoordinaterModules,
   point: __esri.Point
 ): __esri.Point => {
-  if (typeof point.clone === "function") {
+  if (hasClone(point)) {
     return point.clone();
   }
+  const basePoint: __esri.Point = point;
   const { Point } = modules;
   return new Point({
-    x: point.x,
-    y: point.y,
-    spatialReference: point.spatialReference,
+    x: basePoint.x,
+    y: basePoint.y,
+    spatialReference: basePoint.spatialReference,
   });
+};
+
+const hasNormalize = (
+  point: __esri.Point | null
+): point is __esri.Point & { normalize: () => void } => {
+  return (
+    point !== null &&
+    !!point.spatialReference?.isWGS84 &&
+    typeof (point as __esri.Point & { normalize?: unknown }).normalize ===
+      "function"
+  );
 };
 
 export const normalizeLongitudeIfNeeded = (
   point: __esri.Point | null
 ): __esri.Point | null => {
-  if (
-    point?.spatialReference?.isWGS84 &&
-    typeof point.normalize === "function"
-  ) {
+  if (hasNormalize(point)) {
     try {
       point.normalize();
-    } catch {
+    } catch (error: unknown) {
       /* ignore normalization errors */
     }
   }
@@ -164,7 +183,7 @@ export const createSpatialReferenceFactory = (
         const SpatialReference = modules.SpatialReference;
         sr = new SpatialReference({ wkid });
         srCache[wkid] = sr;
-      } catch {
+      } catch (error: unknown) {
         return null;
       }
     }
@@ -174,7 +193,7 @@ export const createSpatialReferenceFactory = (
 
 export const hasSys = (
   candidate: ThemeLike
-): candidate is ThemeLike & ThemeRecord => {
+): candidate is NonNullable<ThemeLike> & ThemeRecord => {
   return (
     typeof candidate === "object" && candidate !== null && "sys" in candidate
   );
@@ -190,27 +209,27 @@ export const getThemePalette = (
   return typeof palette === "object" && palette !== null ? palette : undefined;
 };
 
-export const toArray = (value: unknown): unknown[] => {
+export const toArray = <T = unknown>(value: unknown): T[] => {
   if (Array.isArray(value)) {
-    return value;
+    return value as T[];
   }
   if (value && typeof value === "object") {
     const candidate = value as {
-      toArray?: () => unknown[];
+      toArray?: () => T[];
       toJS?: () => unknown;
     };
     if (typeof candidate.toArray === "function") {
       try {
         return candidate.toArray();
-      } catch {
+      } catch (error: unknown) {
         return [];
       }
     }
     if (typeof candidate.toJS === "function") {
       try {
         const jsValue = candidate.toJS();
-        return Array.isArray(jsValue) ? jsValue : [];
-      } catch {
+        return Array.isArray(jsValue) ? (jsValue as T[]) : [];
+      } catch (error: unknown) {
         return [];
       }
     }
@@ -266,7 +285,7 @@ export const readConfigValue = (candidate: unknown, key: string): unknown => {
   if (typeof maybeGetter.get === "function") {
     try {
       return maybeGetter.get(key);
-    } catch {
+    } catch (error: unknown) {
       return undefined;
     }
   }
@@ -289,7 +308,7 @@ export const formatNumber = (
       minimumFractionDigits: precision,
       useGrouping: false,
     }).format(value);
-  } catch {
+  } catch (error: unknown) {
     return value.toFixed(precision);
   }
 };
@@ -306,7 +325,7 @@ export const formatSnapshotForClipboard = (
     }
     try {
       return value.toFixed(safePrecision);
-    } catch {
+    } catch (error: unknown) {
       return null;
     }
   };
@@ -338,7 +357,7 @@ const projectWgs84ToTarget = async (
       targetSr
     ) as __esri.Point | null;
     return normalizeLongitudeIfNeeded(projected);
-  } catch {
+  } catch (error: unknown) {
     return null;
   }
 };

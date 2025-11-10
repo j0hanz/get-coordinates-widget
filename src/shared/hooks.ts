@@ -194,11 +194,11 @@ export const useArcGisModuleLoader = <T>(
       .then((loaded) => {
         try {
           setValue(mapResult(...loaded));
-        } catch {
+        } catch (_error: unknown) {
           setValue(null);
         }
       })
-      .catch(() => {
+      .catch((_error: unknown) => {
         /* swallow load failures */
       });
   });
@@ -224,7 +224,7 @@ const safeRemove = <T, U>(
   if (!container || !item) return;
   try {
     removeFn(container, item);
-  } catch {
+  } catch (error: unknown) {
     /* ignore removal errors */
   }
 };
@@ -368,7 +368,7 @@ export const usePinGraphicManager = (
 
       safeRemove(layer, graphic, (l, g) => l.remove(g));
       layer.add(graphic);
-    } catch {
+    } catch (error: unknown) {
       /* ignore rendering errors silently */
     }
   });
@@ -521,7 +521,7 @@ export const useProjectionManager = (
           translateFn,
           emptyValueText
         );
-      } catch {
+      } catch (error: unknown) {
         lastProjectionRef.current = null;
         return emptyValueText;
       }
@@ -567,6 +567,15 @@ export const useProjectionManager = (
   };
 };
 
+const hasToJSON = (
+  point: __esri.Point | null
+): point is __esri.Point & { toJSON: () => __esri.PointProperties } => {
+  return (
+    point !== null &&
+    typeof (point as { toJSON?: unknown }).toJSON === "function"
+  );
+};
+
 export const useExportManager = (
   params: ExportManagerParams
 ): ExportManager => {
@@ -603,14 +612,14 @@ export const useExportManager = (
       zoneLabel,
       configRef.current.precision,
       axisLabels,
-      typeof point.toJSON === "function" ? point.toJSON() : null
+      hasToJSON(point) ? point.toJSON() : null
     );
     const { content, mime } = serializeExportPayload(payload, value);
     const filename = buildExportFilename(payload, value);
     try {
       const blob = new Blob([content], { type: mime });
       saveAs(blob, filename);
-    } catch {
+    } catch (error: unknown) {
       /* ignore download errors to avoid leaking environment details */
     }
   });

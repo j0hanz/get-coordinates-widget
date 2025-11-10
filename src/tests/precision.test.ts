@@ -24,6 +24,48 @@ import runtimeMessages from "../runtime/translations/default";
 import { projectionTestHelpers } from "../runtime/widget";
 import { formatSnapshotForClipboard } from "../shared/utils";
 
+const createMockPoint = (x: number, y: number, wkid: number): __esri.Point => {
+  const sr: __esri.SpatialReference = {
+    wkid,
+    isWGS84: wkid === 4326,
+  } as __esri.SpatialReference;
+
+  const point: Partial<__esri.Point> = {
+    x,
+    y,
+    spatialReference: sr,
+    toJSON: () => ({ x, y, spatialReference: { wkid } }),
+    normalize: jest.fn(),
+  };
+
+  point.clone = jest.fn().mockReturnValue(point);
+
+  return point as __esri.Point;
+};
+
+const createMockSpatialReference = (wkid: number): __esri.SpatialReference =>
+  ({
+    wkid,
+    isWGS84: wkid === 4326,
+  }) as __esri.SpatialReference;
+
+const createMockModules = (
+  overrides?: Partial<KoordinaterModules>
+): KoordinaterModules => ({
+  Point: jest.fn() as KoordinaterModules["Point"],
+  SpatialReference: jest.fn() as KoordinaterModules["SpatialReference"],
+  projection: {
+    isLoaded: jest.fn(() => true),
+    load: jest.fn(),
+    project: jest.fn(),
+  } as unknown as KoordinaterModules["projection"],
+  webMercatorUtils: {
+    webMercatorToGeographic: jest.fn(),
+  } as unknown as KoordinaterModules["webMercatorUtils"],
+  Graphic: jest.fn() as KoordinaterModules["Graphic"],
+  ...overrides,
+});
+
 describe("coordinate metadata", () => {
   it("orders SWEREF projected axes northing-first", () => {
     const option = SWEREF_ZONES[0];
@@ -47,6 +89,7 @@ describe("precision handling", () => {
   });
 
   it("sanitizes partial configuration consistently", () => {
+    const invalidPinIconId = "invalid" as PinIconId;
     const sanitized = buildConfig({
       swerefWkid: 999999,
       precision: 42,
@@ -56,7 +99,7 @@ describe("precision handling", () => {
       includeExtendedSystems: true,
       enabledWkids: [3006, 3021],
       pinFillColor: "336699",
-      pinIconId: "invalid" as unknown as PinIconId,
+      pinIconId: invalidPinIconId,
     });
 
     expect(sanitized.swerefWkid).toBe(3006);
@@ -172,55 +215,71 @@ describe("precision handling", () => {
     expect(negative.precision).toBe(PRECISION_LIMITS.min);
   });
 
-  it("normalizes WGS84 longitudes before reprojection", async () => {
-    const projectionCalls: Array<{ x: number; y: number }> = [];
+  it("normalizes longitude >180 before projecting WGS84 points", async () => {
+    const projectionCalls: Array<{ x: number; y: number; wkid: number }> = [];
     const projection = {
       isLoaded: () => true,
       load: jest.fn(),
-      project: jest.fn((pt: __esri.Point, target: __esri.SpatialReference) => {
-        projectionCalls.push({ x: pt.x, y: pt.y });
-        return { ...pt, spatialReference: target } as __esri.Point;
-      }),
-    } satisfies Pick<__esri.projection, "isLoaded" | "load" | "project">;
-    const point = {
-      x: 181,
-      y: 10,
-      spatialReference: { wkid: 4326, isWGS84: true },
-      clone() {
-        return {
-          x: this.x,
-          y: this.y,
-          spatialReference: this.spatialReference,
-          normalize: this.normalize,
-        };
-      },
-      normalize() {
-        const normalized = ((((this.x + 180) % 360) + 360) % 360) - 180;
-        this.x = normalized;
-      },
+      project: jest.fn(
+        (point: __esri.Point, targetSr: __esri.SpatialReference) => {
+          projectionCalls.push({
+            x: point.x,
+            y: point.y,
+            wkid: targetSr.wkid,
+          });
+          return createMockPoint(point.x, point.y, targetSr.wkid);
+        }
+      ),
     };
-    const modules: KoordinaterModules = {
-      Point: jest.fn() as unknown as KoordinaterModules["Point"],
-      SpatialReference:
-        jest.fn() as unknown as KoordinaterModules["SpatialReference"],
+
+    const createClonablePoint = (x: number, y: number) => {
+      const pt = {
+        x,
+        y,
+        spatialReference: {
+          wkid: 4326,
+          isWGS84: true,
+        },
+        toJSON() {
+          return {
+            x: this.x,
+            y: this.y,
+            spatialReference: { wkid: this.spatialReference.wkid },
+          };
+        },
+        normalize() {
+          const normalized = ((((this.x + 180) % 360) + 360) % 360) - 180;
+          this.x = normalized;
+        },
+        clone() {
+          return createClonablePoint(this.x, this.y);
+        },
+      };
+      return pt;
+    };
+
+    const point = createClonablePoint(181.5, 58.5);
+
+    const PointConstructor = jest.fn((props: __esri.PointProperties) =>
+      createClonablePoint(props.x ?? 0, props.y ?? 0)
+    );
+
+    const modules = createMockModules({
+      Point: PointConstructor as unknown as KoordinaterModules["Point"],
       projection: projection as unknown as KoordinaterModules["projection"],
-      webMercatorUtils: {
-        webMercatorToGeographic: jest.fn(),
-      } as unknown as KoordinaterModules["webMercatorUtils"],
-      Graphic: jest.fn() as unknown as KoordinaterModules["Graphic"],
-    };
+    });
+
     const option = ETRS89_OPTIONS[0];
     const result = await projectionTestHelpers.projectPointToOption(
-      point as unknown as __esri.Point,
+      point as __esri.Point,
       option,
       modules,
-      (wkid: number) =>
-        ({ wkid, isWGS84: wkid === 4326 }) as unknown as __esri.SpatialReference
+      (wkid: number) => createMockSpatialReference(wkid)
     );
 
     expect(projection.project).toHaveBeenCalledTimes(1);
-    expect(projectionCalls[0].x).toBeCloseTo(-179, 6);
-    expect(result?.x).toBeCloseTo(-179, 6);
+    expect(projectionCalls[0].x).toBeCloseTo(-178.5, 6);
+    expect(result?.x).toBeCloseTo(-178.5, 6);
     expect(result?.spatialReference?.wkid).toBe(option.wkid);
   });
 });

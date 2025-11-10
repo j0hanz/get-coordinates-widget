@@ -348,7 +348,7 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
         ) {
           copyValueToClipboard();
         }
-      } catch {
+      } catch (error: unknown) {
         /* ignore formatting errors */
       }
     }

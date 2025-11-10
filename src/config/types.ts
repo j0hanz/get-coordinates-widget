@@ -46,11 +46,13 @@ export interface KoordinaterConfig {
 export type IMKoordinaterConfig = ImmutableObject<KoordinaterConfig>;
 
 export interface KoordinaterModules {
-  Point: new (...args: unknown[]) => __esri.Point;
-  SpatialReference: new (...args: unknown[]) => __esri.SpatialReference;
+  Point: new (properties?: __esri.PointProperties) => __esri.Point;
+  SpatialReference: new (
+    properties?: __esri.SpatialReferenceProperties
+  ) => __esri.SpatialReference;
   projection: __esri.projection;
   webMercatorUtils: __esri.webMercatorUtils;
-  Graphic: new (...args: unknown[]) => __esri.Graphic;
+  Graphic: new (properties?: __esri.GraphicProperties) => __esri.Graphic;
 }
 
 export interface PinGraphicManager {
@@ -180,7 +182,7 @@ export type NativeEventWithStop = Event & {
 };
 
 export type GraphicsLayerCtor = new (
-  ...args: unknown[]
+  properties?: __esri.GraphicsLayerProperties
 ) => __esri.GraphicsLayer;
 
 export interface PointerSubscriptionsParams {
