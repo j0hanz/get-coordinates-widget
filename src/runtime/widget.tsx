@@ -86,19 +86,61 @@ if (!defaultNoValueText) {
   throw new Error(`Missing default translation for '${NO_VALUE_MESSAGE_KEY}'`);
 }
 
+type WidgetStyles = ReturnType<typeof createWidgetStyles>;
+
+type WidgetStatusProps = {
+  containerCss: WidgetStyles["container"];
+  leading: React.ReactNode;
+  message: string;
+  ariaLive: "polite" | "assertive";
+  role?: "status" | "alert";
+  ariaBusy?: boolean;
+};
+
+const WidgetStatus: React.FC<WidgetStatusProps> = ({
+  containerCss,
+  leading,
+  message,
+  ariaLive,
+  role = "status",
+  ariaBusy = false,
+}) => {
+  return (
+    <div css={containerCss}>
+      <div
+        css={statusContainerStyle}
+        role={role}
+        aria-live={ariaLive}
+        aria-busy={ariaBusy}
+      >
+        {leading}
+        <div css={statusMessageStyle}>{message}</div>
+      </div>
+    </div>
+  );
+};
+
 function useStyles(variant: StyleVariant = StyleVariant.Default) {
   const theme = useTheme();
-  const stylesRef = React.useRef(null);
-  const themeRef = React.useRef<ThemeLike | null>(null);
-  const variantRef = React.useRef(variant);
-  let styles = stylesRef.current;
-  if (!styles || themeRef.current !== theme || variantRef.current !== variant) {
-    styles = createWidgetStyles(theme, variant);
-    stylesRef.current = styles;
-    themeRef.current = theme;
-    variantRef.current = variant;
+  const cacheRef = React.useRef<{
+    theme: ThemeLike;
+    variant: StyleVariant;
+    styles: WidgetStyles;
+  } | null>(null);
+
+  if (
+    !cacheRef.current ||
+    cacheRef.current.theme !== theme ||
+    cacheRef.current.variant !== variant
+  ) {
+    cacheRef.current = {
+      theme,
+      variant,
+      styles: createWidgetStyles(theme, variant),
+    };
   }
-  return styles;
+
+  return cacheRef.current.styles;
 }
 
 const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
@@ -481,13 +523,9 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
 
   if (shouldShowLoading) {
     return (
-      <div css={styles.container}>
-        <div
-          css={statusContainerStyle}
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
+      <WidgetStatus
+        containerCss={styles.container}
+        leading={
           <Loading
             css={statusSpinnerStyle}
             type={LoadingType.Donut}
@@ -495,24 +533,25 @@ const KoordinaterWidget: React.FC<KoordinaterWidgetProps> = (props) => {
             height={24}
             aria-label={translateMessage("loadingModules")}
           />
-          <div css={statusMessageStyle}>
-            {translateMessage("loadingModules")}
-          </div>
-        </div>
-      </div>
+        }
+        message={translateMessage("loadingModules")}
+        ariaLive="polite"
+        ariaBusy
+      />
     );
   }
 
   if (modulesError) {
     return (
-      <div css={styles.container}>
-        <div css={statusContainerStyle} role="alert" aria-live="assertive">
+      <WidgetStatus
+        containerCss={styles.container}
+        leading={
           <SVG src={pinOffSvg} css={statusIconStyle} role="presentation" />
-          <div css={statusMessageStyle}>
-            {translateMessage("moduleLoadFailed")}
-          </div>
-        </div>
-      </div>
+        }
+        message={translateMessage("moduleLoadFailed")}
+        ariaLive="assertive"
+        role="alert"
+      />
     );
   }
 
