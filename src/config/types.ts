@@ -14,14 +14,6 @@ export type CoordinateSystemId =
 
 export type AxisMessageKey = "easting" | "northing" | "latitude" | "longitude";
 
-export interface ProjectionMetadata {
-  readonly centralMeridian: number;
-  readonly scaleFactor: number;
-  readonly falseNorthing: number;
-  readonly falseEasting: number;
-  readonly ellipsoid: "GRS80";
-}
-
 export interface CoordinateOption {
   id: string;
   wkid: number;
@@ -29,7 +21,6 @@ export interface CoordinateOption {
   system: CoordinateSystemId;
   axisMessageKeys: readonly [AxisMessageKey, AxisMessageKey];
   valueOrder: "xy" | "yx";
-  metadata?: ProjectionMetadata;
 }
 
 export interface CoordinateSystemCatalogEntry {
@@ -50,7 +41,6 @@ export interface KoordinaterConfig {
   enabledWkids: number[];
   pinFillColor: string;
   pinIconId: PinIconId;
-  showProjectionParameters: boolean;
 }
 
 export type IMKoordinaterConfig = ImmutableObject<KoordinaterConfig>;

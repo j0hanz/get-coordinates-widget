@@ -38,7 +38,6 @@ export const LAT_LONG_AXIS_KEYS = new Set<AxisMessageKey>([
   "longitude",
 ]);
 
-// SWEREF 99 projected zones
 export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
   {
     id: "sweref_99_tm",
@@ -47,13 +46,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 15,
-      scaleFactor: 0.9996,
-      falseNorthing: 0,
-      falseEasting: 500000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_12_00",
@@ -62,13 +54,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 12,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_13_30",
@@ -77,13 +62,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 13.5,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_15_00",
@@ -92,13 +70,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 15,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_16_30",
@@ -107,13 +78,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 16.5,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_18_00",
@@ -122,13 +86,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 18,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_14_15",
@@ -137,13 +94,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 14.25,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_15_45",
@@ -152,13 +102,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 15.75,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_17_15",
@@ -167,13 +110,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 17.25,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_18_45",
@@ -182,13 +118,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 18.75,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_20_15",
@@ -197,13 +126,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 20.25,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_21_45",
@@ -212,13 +134,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 21.75,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_23_15",
@@ -227,13 +142,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 23.25,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
   {
     id: "sweref_99_24_00",
@@ -242,13 +150,6 @@ export const SWEREF_ZONES: readonly CoordinateOption[] = Object.freeze([
     system: "sweref99",
     axisMessageKeys: ["easting", "northing"],
     valueOrder: "xy",
-    metadata: {
-      centralMeridian: 24,
-      scaleFactor: 1,
-      falseNorthing: 0,
-      falseEasting: 150000,
-      ellipsoid: "GRS80",
-    },
   },
 ]);
 
@@ -390,11 +291,6 @@ export const SWEREF_WKID_LIST: readonly number[] = Object.freeze(
 );
 
 export const SWEREF_WKID_SET = new Set<number>(SWEREF_WKID_LIST);
-
-export const EXPECTED_SWEREF_WKIDS: readonly number[] = Object.freeze([
-  3006, 3007, 3008, 3009, 3010, 3011, 3012, 3013, 3014, 3015, 3016, 3017, 3018,
-  3019,
-]);
 
 export const DEFAULT_SWEREF_WKIDS: readonly number[] = Object.freeze([
   ...SWEREF_WKID_LIST,
@@ -815,18 +711,6 @@ export const getDefaultWkidForSystem = (
   return DEFAULT_WKID_BY_SYSTEM[systemId] ?? DEFAULT_SWEREF_WKID;
 };
 
-export const validateSwerefZoneCoverage = (): boolean => {
-  const actualWkids = SWEREF_ZONES.map((zone) => zone.wkid);
-  const missing = EXPECTED_SWEREF_WKIDS.filter(
-    (wkid) => !actualWkids.includes(wkid)
-  );
-  if (missing.length > 0) {
-    console.error(`Missing SWEREF 99 zones: ${missing.join(", ")}`);
-    return false;
-  }
-  return actualWkids.length === EXPECTED_SWEREF_WKIDS.length;
-};
-
 const buildPrefixCandidates = (
   option: CoordinateOption,
   translate: (key: string) => string
@@ -870,36 +754,6 @@ export const formatCoordinateOptionLabel = (
     translatedSystem && translatedSystem !== meta?.label
       ? translatedSystem
       : (meta?.label ?? option.system.toUpperCase());
-
-  if (option.system === "sweref99" && option.metadata) {
-    const wkidLabel = `(EPSG:${option.wkid})`;
-    const tmKey = translate("zoneNameTm");
-    const tmLabel =
-      tmKey !== "zoneNameTm" && tmKey.trim() !== "" ? tmKey : "TM";
-
-    if (Math.abs(option.metadata.scaleFactor - 0.9996) < 1e-6) {
-      return `${systemLabel} ${tmLabel} ${wkidLabel}`;
-    }
-
-    const centralMeridian = option.metadata.centralMeridian;
-    const degrees = Math.trunc(centralMeridian);
-    const minuteValue = Math.round((centralMeridian - degrees) * 60);
-    const minutes = minuteValue >= 60 ? 0 : minuteValue;
-    const normalizedDegrees = minuteValue >= 60 ? degrees + 1 : degrees;
-    const paddedMinutes = String(minutes).padStart(2, "0");
-    const direction = "E";
-    const formatTemplate = translate("zoneNameLocalFormat");
-    const templateIsValid =
-      formatTemplate !== "zoneNameLocalFormat" &&
-      formatTemplate.includes("{degrees}");
-    const zoneLabel = templateIsValid
-      ? formatTemplate
-          .replace("{degrees}", normalizedDegrees.toString())
-          .replace("{minutes}", paddedMinutes)
-          .replace("{direction}", direction)
-      : `${normalizedDegrees}°${paddedMinutes}′ ${direction}`;
-    return `${systemLabel} ${zoneLabel} ${wkidLabel}`;
-  }
 
   const originalLabel = option.label.trim();
   const candidates = buildPrefixCandidates(option, translate);
@@ -975,7 +829,6 @@ export const defaultConfig: KoordinaterConfig = Object.freeze({
   enabledWkids: Array.from(DEFAULT_SWEREF_WKIDS),
   pinFillColor: DEFAULT_PIN_FILL_COLOR,
   pinIconId: DEFAULT_PIN_ICON_ID,
-  showProjectionParameters: false,
 });
 
 const coerceEnabledWkids = (
@@ -999,7 +852,6 @@ export const buildConfig = (partial: unknown): KoordinaterConfig => {
     enabledWkids: Array.from(defaultConfig.enabledWkids),
     pinFillColor: defaultConfig.pinFillColor,
     pinIconId: defaultConfig.pinIconId,
-    showProjectionParameters: defaultConfig.showProjectionParameters,
   };
 
   const includeExtended = ConfigCoercers.boolean(
@@ -1040,11 +892,6 @@ export const buildConfig = (partial: unknown): KoordinaterConfig => {
     base.enablePin
   );
 
-  const showProjectionParameters = ConfigCoercers.boolean(
-    readConfigValue(partial, "showProjectionParameters"),
-    base.showProjectionParameters
-  );
-
   const pinFillColor = ConfigSanitizers.hexColor(
     readConfigValue(partial, "pinFillColor"),
     base.pinFillColor
@@ -1064,7 +911,6 @@ export const buildConfig = (partial: unknown): KoordinaterConfig => {
     enabledWkids,
     pinFillColor,
     pinIconId,
-    showProjectionParameters,
   };
 };
 
