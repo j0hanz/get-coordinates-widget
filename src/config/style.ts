@@ -100,30 +100,49 @@ const createLinearStyles = (
     onSurface: ReturnType<typeof getThemePalette>;
     activeIconColor: string;
   },
+  haloColors: {
+    surface: ReturnType<typeof getThemePalette>;
+    onSurface: ReturnType<typeof getThemePalette>;
+    activeIconColor: string;
+  },
   spacing: ((value: number) => number | string) | undefined
-) => ({
-  ...createSharedStyles(colors, spacing, {
+) => {
+  const haloColor = haloColors.surface?.paper ?? 'rgba(0, 0, 0, 0.75)'
+  const sharedStyles = createSharedStyles(colors, spacing, {
     pinButtonBackground: "transparent",
-  }),
-  container: css({
-    display: "flex",
-    height: 33,
-    background: "transparent",
-  }),
-  controls: css({
-    display: "flex",
-    alignItems: "center",
-    borderBottom: `1px solid ${(() => {
-      const neutral = getThemePalette(theme, "neutral");
-      if (neutral) {
-        const candidate = neutral["500"] ?? neutral["400"] ?? neutral["600"];
-        return candidate ?? "var(--sys-color-neutral-500)";
-      }
-      return "var(--sys-color-neutral-500)";
-    })()}`,
-    width: "100%",
-  }),
-});
+  })
+  
+  return {
+    ...sharedStyles,
+    output: css({
+      marginLeft: spacing?.(2),
+      flex: 1,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      color: colors.surface?.backgroundText ?? colors.onSurface?.high ?? colors.onSurface?.variant,
+      textShadow: `0 0 3px ${haloColor}, 0 0 6px ${haloColor}`,
+    }),
+    container: css({
+      display: "flex",
+      height: 33,
+      background: "transparent",
+    }),
+    controls: css({
+      display: "flex",
+      alignItems: "center",
+      borderBottom: `1px solid ${(() => {
+        const neutral = getThemePalette(theme, "neutral");
+        if (neutral) {
+          const candidate = neutral["500"] ?? neutral["400"] ?? neutral["600"];
+          return candidate ?? "var(--sys-color-neutral-500)";
+        }
+        return "var(--sys-color-neutral-500)";
+      })()}`,
+      width: "100%",
+    }),
+  }
+}
 
 export const createWidgetStyles = (
   theme: ThemeLike,
@@ -142,7 +161,12 @@ export const createWidgetStyles = (
   };
 
   if (variant === StyleVariant.Linear) {
-    return createLinearStyles(theme, colors, spacing);
+    const haloColors = {
+      surface,
+      onSurface,
+      activeIconColor,
+    }
+    return createLinearStyles(theme, colors, haloColors, spacing);
   }
 
   return createDefaultStyles(colors, spacing);
