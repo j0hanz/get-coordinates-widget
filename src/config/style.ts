@@ -107,7 +107,9 @@ const createLinearStyles = (
   },
   spacing: ((value: number) => number | string) | undefined
 ) => {
-  const haloColor = haloColors.surface?.paper ?? 'rgba(0, 0, 0, 0.75)'
+  const textColor = colors.surface?.backgroundText ?? colors.onSurface?.high ?? colors.onSurface?.variant
+  // Use a strong contrasting halo color - black with high opacity for visibility on map backgrounds
+  const haloColor = 'rgba(0, 0, 0, 0.9)'
   const sharedStyles = createSharedStyles(colors, spacing, {
     pinButtonBackground: "transparent",
   })
@@ -120,8 +122,15 @@ const createLinearStyles = (
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      color: colors.surface?.backgroundText ?? colors.onSurface?.high ?? colors.onSurface?.variant,
-      textShadow: `0 0 3px ${haloColor}, 0 0 6px ${haloColor}`,
+      color: textColor,
+      textShadow: `
+        0 0 2px ${haloColor},
+        0 0 4px ${haloColor},
+        1px 1px 2px ${haloColor},
+        -1px -1px 2px ${haloColor},
+        1px -1px 2px ${haloColor},
+        -1px 1px 2px ${haloColor}
+      `,
     }),
     container: css({
       display: "flex",
